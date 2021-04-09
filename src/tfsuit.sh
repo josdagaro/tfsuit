@@ -5,6 +5,7 @@ set -eu
 tfsuit() {
   (
     source check_deps.sh
+    source usage.sh
     source helpers.sh
     source version.sh
     source inputs.sh

@@ -13,5 +13,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v2
-      - name: test
-        run: echo "test"
+      - name: transpile
+        run: |
+          wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht
+          chmod a+x gsht
+          gsht /src/tfsuit.sh --output=tfsuit
