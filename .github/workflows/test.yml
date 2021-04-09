@@ -19,4 +19,6 @@ jobs:
           sudo mv gsht /usr/local/bin/
           sudo chmod a+x /usr/local/bin/gsht
       - name: transpile
-        run: gsht /src/tfsuit.sh --output=tfsuit
+        run: |
+          gsht src/tfsuit.sh --output=tfsuit
+          cat tfsuit
