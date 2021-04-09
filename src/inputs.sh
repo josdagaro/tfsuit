@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eu
+
 # Initialize variables
 help=0
 debug=0
@@ -7,6 +9,7 @@ verbose=0
 version=0
 dir=
 recursive=0
+config_json_path=
 extra_args=("${dummy_arg}") # Because set -u does not allow undefined variables to be used
 
 echo "All pre-getopt arguments: $*"
@@ -17,8 +20,8 @@ if [[ $? -ne 4 ]]; then
   exit 1
 fi
 
-SHORT=hDVvd:r
-LONG=help,debug,verbose,version,dir:,recursive
+SHORT=hDVvd:rc:
+LONG=help,debug,verbose,version,dir:,recursive,config-json-path:
 
 PARSED=$(getopt --options ${SHORT} \
   --longoptions ${LONG} \
@@ -49,6 +52,10 @@ while [[ $# -gt 0 ]]; do
     recursive=1
     shift
     ;;
+  -c | --config-json-path)
+    config_json_path="$2"
+    shift
+    ;;
   --)
     shift
     extra_args=("$@")
@@ -57,3 +64,5 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+extra_args=("${extra_args[@]/${dummy_arg}/}")
