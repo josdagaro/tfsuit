@@ -17,6 +17,6 @@ jobs:
         run: |
           wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht
           sudo mv gsht /usr/local/bin/
-          sudo chmod a+x gsht
+          sudo chmod a+x /usr/local/bin/gsht
       - name: transpile
         run: gsht /src/tfsuit.sh --output=tfsuit
