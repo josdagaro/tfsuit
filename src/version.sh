@@ -1,6 +1,5 @@
 #!/bin/bash
 
-version()
-{
+version() {
   echo "0.1.0"
 }

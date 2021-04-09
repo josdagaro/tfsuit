@@ -1,22 +1,54 @@
 {
   "vars": {
     "naming_conventions": {
-      "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b"
+      "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b",
+      "exact": null,
+      "ignore": {
+        "match_pattern": null,
+        "exact": [
+          "route53_domain"
+        ]
+      }
+    },
+    "linter": {
+      "num_of_blank_lines_above": 1,
+      "num_of_blank_lines_below": 1,
+      "use_quotes": false
     }
   },
   "outputs": {
     "naming_conventions": {
-      "match_pattern": ""
+      "match_pattern": "",
+      "exact": null,
+      "ignore": null
+    },
+    "linter": null
+  },
+  "blocks": {
+    "linter": {
+      "num_of_blank_lines_above": 0,
+      "num_of_blank_lines_below": 0
+    }
+  },
+  "resources": {
+    "naming_conventions": {
+      "match_pattern": "",
+      "exact": null,
+      "ignore": null
     }
   },
   "modules": {
     "naming_conventions": {
-      "match_pattern": ""
+      "match_pattern": "",
+      "exact": null,
+      "ignore": null
     }
   },
   "files": {
     "naming_conventions": {
-      "match_pattern": ""
+      "match_pattern": "",
+      "exact": null,
+      "ignore": null
     }
   }
 }

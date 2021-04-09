@@ -4,10 +4,11 @@ set -eu
 
 tfsuit() {
   (
-    source check-deps.sh
+    source check_deps.sh
     source helpers.sh
     source version.sh
     source inputs.sh
+    source eval_vars.sh
 
     if [[ "$version" -eq 1 ]]; then
       die "$(version)"
@@ -17,16 +18,16 @@ tfsuit() {
       die "$(version)"
     fi
 
-    local config_var_naming_convention_beginning_of_match_pattern
-    local config_var_naming_convention_match_pattern
-    config_var_naming_convention_match_pattern=$(cat "$config_json_path" | jq .vars.naming_conventions.match_pattern)
-
-    if [ "$config_var_naming_convention_match_pattern" != "null" ]; then
-      config_var_naming_convention_beginning_of_match_pattern="variable\\s+"
-      config_var_naming_convention_match_pattern="${config_var_naming_convention_beginning_of_match_pattern}${config_var_naming_convention_match_pattern}"
-      
-    elif [ "$" ]; then
-    fi
+    local compliant_vars
+    local not_compliant_vars
+    local vars_sum
+    vars_sum=$(eval_vars)
+    compliant_vars=$(echo "$vars_sum" | jq .compliant)
+    not_compliant_vars=$(echo "$vars_sum" | jq .not_compliant)
+    echo "compliant vars:"
+    echo $(echo "$compliant_vars" | jq)
+    echo "not compliant vars:"
+    echo $(echo "$not_compliant_vars" | jq)
   )
 }
 
