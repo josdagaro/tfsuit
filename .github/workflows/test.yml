@@ -13,8 +13,10 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v2
-      - name: transpile
+      - name: install gsht
         run: |
           wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht
+          mv gsht /usr/local/bin/
           chmod a+x gsht
-          gsht /src/tfsuit.sh --output=tfsuit
+      - name: transpile
+        run: gsht /src/tfsuit.sh --output=tfsuit
