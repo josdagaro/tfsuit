@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if ! command -v jq &>/dev/null; then
   die "The command jq is not installed"
