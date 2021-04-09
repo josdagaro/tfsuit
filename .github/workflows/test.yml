@@ -20,5 +20,5 @@ jobs:
           sudo chmod a+x /usr/local/bin/gsht
       - name: transpile
         run: |
-          gsht src/tfsuit.sh --output=tfsuit
+          gsht src/tfsuit.sh --input=source --output=tfsuit
           cat tfsuit
