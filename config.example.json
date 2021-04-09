@@ -1,0 +1,22 @@
+{
+  "vars": {
+    "naming_conventions": {
+      "match_pattern": "/variable\\s+[a-z0-9_]+_(virginia|ohio|california|oregon)\\b/g"
+    }
+  },
+  "outputs": {
+    "naming_conventions": {
+      "match_pattern": ""
+    }
+  },
+  "modules": {
+    "naming_conventions": {
+      "match_pattern": ""
+    }
+  },
+  "files": {
+    "naming_conventions": {
+      "match_pattern": ""
+    }
+  }
+}
