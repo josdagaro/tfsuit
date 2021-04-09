@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -eu
-
 # Initialize variables
 help=0
 debug=0

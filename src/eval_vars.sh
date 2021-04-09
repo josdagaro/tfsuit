@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-set -eu
-
 read_vars() {
   local vars
   $dir
