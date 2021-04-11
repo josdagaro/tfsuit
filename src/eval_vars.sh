@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-read_vars() {
+get_vars() {
   local vars
   local tf_files
   local code
@@ -10,8 +10,9 @@ read_vars() {
 
   while read -r tf_file; do
     code=$(cat "$tf_file")
-    tf_vars=$(echo "$code" | grep -oE "$vars_match_pattern")
-    vars="${vars}\n${tf_vars}"
+    tf_vars=$(echo "$code" | grep -oE "$1")
+    vars+="
+    ${tf_vars}"
   done < <(echo "$tf_files")
 
   echo "$vars"
@@ -32,7 +33,7 @@ eval_vars() {
     vars_naming_convention_match_pattern_beginning="variable\s+"
     vars_match_pattern="variable\s+[a-z0-9_]+"
     vars_naming_convention_match_pattern="${vars_naming_convention_match_pattern_beginning}${vars_naming_convention_match_pattern}"
-    vars=$(read_vars)
+    vars=$(get_vars "$vars_match_pattern")
     compliant_vars=$(echo "$vars" | grep -oE "$vars_naming_convention_match_pattern")
     not_compliant_vars=$(echo "$vars" | grep -ovE "$vars_naming_convention_match_pattern" | grep -oE "$vars_match_pattern")
   fi
