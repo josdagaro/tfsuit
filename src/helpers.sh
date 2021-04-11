@@ -22,6 +22,7 @@ convert_array_to_json_array() {
 find_tf_files() {
   local dir
   local command_find
+  local result
   dir="$1"
   command_find="#!/usr/bin/env bash
   find ${dir} "
@@ -37,6 +38,7 @@ find_tf_files() {
   fi
 
   command_find+="-name *.tf"
-  echo "$command_find" > /tmp/tfsuit_find.sh
-  echo $(bash /tmp/tfsuit_find.sh)
+  echo "$command_find" >/tmp/tfsuit_find.sh
+  result=$(bash /tmp/tfsuit_find.sh)
+  echo "$result"
 }
