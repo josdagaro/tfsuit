@@ -2,8 +2,19 @@
 
 read_vars() {
   local vars
-  $dir
-  return "$vars"
+  local tf_files
+  local code
+  local tf_vars
+  tf_files=$(find "$dir" -name "*.tf")
+  vars=""
+
+  while read -r tf_file; do
+    code=$(cat "$tf_file")
+    tf_vars=$(echo "$code" | grep -oE "$vars_match_pattern")
+    vars="${vars}\n${tf_vars}"
+  done < <(echo "$tf_files")
+
+  echo "$vars"
 }
 
 eval_vars() {
@@ -15,7 +26,6 @@ eval_vars() {
   local compliant_vars_json_array
   local not_compliant_vars
   local not_compliant_vars_json_array
-  local vars_sum
   config_vars_naming_convention_match_pattern=$(cat "$config_json_path" | jq -r .vars.naming_conventions.match_pattern)
 
   if [ "$vars_naming_convention_match_pattern" != "null" ]; then
@@ -39,7 +49,7 @@ eval_vars() {
     not_compliant_vars_json_array=$(convert_array_to_json_array "$not_compliant_vars")
   fi
 
-  return "{
+  echo "{
     \"compliant\": $(echo ${compliant_vars_json_array}),
     \"not_compliant\": $(echo ${not_compliant_vars}),
   }"
