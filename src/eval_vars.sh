@@ -10,7 +10,7 @@ get_vars() {
 
   while read -r tf_file; do
     code=$(cat "$tf_file")
-    tf_vars=$(echo "$code" | grep -oE "$1")
+    tf_vars=$(echo "$code" | grep -oP "$1")
     vars+="
     ${tf_vars}"
   done < <(echo "$tf_files")
@@ -21,7 +21,8 @@ get_vars() {
 eval_vars() {
   local vars_naming_convention_match_pattern_beginning
   local vars_naming_convention_match_pattern
-  local vars_match_pattern
+  local vars_match_pattern_1
+  local vars_match_pattern_2
   local vars
   local compliant_vars
   local compliant_vars_json_array
@@ -31,11 +32,12 @@ eval_vars() {
 
   if [ "$vars_naming_convention_match_pattern" != "null" ]; then
     vars_naming_convention_match_pattern_beginning="variable\s+"
-    vars_match_pattern="variable\s+[a-z0-9_]+"
+    vars_match_pattern_1="^(?!#*$)([\s]+)?variable\s+[a-z0-9_]+"
+    vars_match_pattern_2="variable\s+[a-z0-9_]+"
     vars_naming_convention_match_pattern="${vars_naming_convention_match_pattern_beginning}${vars_naming_convention_match_pattern}"
-    vars=$(get_vars "$vars_match_pattern")
+    vars=$(get_vars "$vars_match_pattern_1")
     compliant_vars=$(echo "$vars" | grep -oE "$vars_naming_convention_match_pattern")
-    not_compliant_vars=$(echo "$vars" | grep -ovE "$vars_naming_convention_match_pattern" | grep -oE "$vars_match_pattern")
+    not_compliant_vars=$(echo "$vars" | grep -ovE "$vars_naming_convention_match_pattern" | grep -oP "$vars_match_pattern_1" | grep -oE "$vars_match_pattern_2")
   fi
 
   if [ -z "$compliant_vars" ]; then
