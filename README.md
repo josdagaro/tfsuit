@@ -1,4 +1,6 @@
 # tfsuit
+
+## About
 Terraform customizable linter for defining your standards, styles, and naming conventions
 
 ## Install
