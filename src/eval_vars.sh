@@ -5,7 +5,7 @@ get_vars() {
   local tf_files
   local code
   local tf_vars
-  tf_files=$(find "$dir" -name "*.tf")
+  tf_files=$(find_tf_files "$dir")
   vars=""
 
   while read -r tf_file; do
