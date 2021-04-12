@@ -40,5 +40,6 @@ find_tf_files() {
   command_find+="-name *.tf"
   echo "$command_find" >/tmp/tfsuit_find.sh
   result=$(bash /tmp/tfsuit_find.sh)
+  rm -f /tmp/tfsuit_find.sh
   echo "$result"
 }
