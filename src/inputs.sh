@@ -35,9 +35,6 @@ if [[ $? -ne 0 ]]; then
 fi
 
 eval set -- "${PARSED}"
-echo "Getopt parsed arguments: ${PARSED}"
-echo "Effective arguments: $@"
-echo "Num args: $#"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
