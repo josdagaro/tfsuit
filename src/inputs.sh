@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+source ./helpers.sh
+source ./usage.sh
+
 # Initialize variables
 help=0
 debug=0
@@ -31,3 +34,7 @@ for arg in "$@"; do
   esac
   shift
 done
+
+if [ -z "$dir" ] || [ -z "$config_json_path" ]; then
+  show_usage
+fi
