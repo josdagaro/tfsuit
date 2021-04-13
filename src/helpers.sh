@@ -8,15 +8,22 @@ die() {
 convert_array_to_json_array() {
   local array
   local json_array
-  array="$1"
+  array=($1)
   json_array="["
 
   for elem in "${array[@]}"; do
-    json_array="$json_array\"$elem\","
+    if [ "$elem" != "variable" ]; then
+      json_array="$json_array\"$elem\","
+    fi
   done
 
-  json_array="${json_array::-1}]"
-  return "$json_array"
+  if [ "$json_array" != "[" ]; then
+    json_array="$json_array\"pan\","
+    json_array="${json_array::${#json_array}-1}"
+  fi
+
+  json_array+="]"
+  echo "$json_array"
 }
 
 find_tf_files() {

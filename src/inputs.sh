@@ -8,7 +8,7 @@ version=0
 dir=
 recursive=0
 config_json_path=
-extra_args=("${dummy_arg}") # Because set -u does not allow undefined variables to be used
+extra_args=
 
 getopt --test 2>/dev/null
 
@@ -73,5 +73,3 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
-
-extra_args=("${extra_args[@]/${dummy_arg}/}")
