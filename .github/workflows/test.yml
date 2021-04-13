@@ -16,7 +16,7 @@ jobs:
       - name: install gsht
         run: |
           wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht.gsht
-          sudo mv gsht /usr/local/bin/
+          sudo mv gsht.gsht /usr/local/bin/gsht
           sudo chmod a+x /usr/local/bin/gsht
       - name: transpile
         run: |
