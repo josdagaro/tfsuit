@@ -18,7 +18,6 @@ convert_array_to_json_array() {
   done
 
   if [ "$json_array" != "[" ]; then
-    json_array="$json_array\"pan\","
     json_array="${json_array::${#json_array}-1}"
   fi
 

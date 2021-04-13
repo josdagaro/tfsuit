@@ -4,11 +4,12 @@ set -eu
 
 tfsuit() {
   (
-    source ./inputs.sh
-    source ./check_deps.sh
-    source ./usage.sh
-    source ./version.sh
-    source ./eval_vars.sh
+    source helpers.sh
+    source usage.sh
+    source inputs.sh
+    source check_deps.sh
+    source version.sh
+    source eval_vars.sh
 
     if [[ "$version" -eq 1 ]]; then
       die "$(version)"
@@ -25,9 +26,9 @@ tfsuit() {
     compliant_vars=$(echo "$vars_sum" | jq .compliant)
     not_compliant_vars=$(echo "$vars_sum" | jq .not_compliant)
     echo "compliant vars:"
-    echo $(echo "$compliant_vars" | jq)
+    echo "$compliant_vars" | jq
     echo "not compliant vars:"
-    echo $(echo "$not_compliant_vars" | jq)
+    echo "$not_compliant_vars" | jq
   )
 }
 

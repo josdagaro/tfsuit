@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-source ./helpers.sh
-source ./usage.sh
-
 # Initialize variables
 help=0
 debug=0
