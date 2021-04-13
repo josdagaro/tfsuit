@@ -24,4 +24,4 @@ jobs:
           sudo mv tfsuit /usr/local/bin/tfsuit
           sudo chmod a+x /usr/local/bin/tfsuit
       - name: test
-        run: tfsuit -c tfsuit.example.json -d "tests"
+        run: tfsuit -c tfsuit.example.json -d .
