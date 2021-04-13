@@ -21,4 +21,7 @@ jobs:
       - name: transpile
         run: |
           gsht --input src/tfsuit.sh  --output tfsuit
-          cat tfsuit
+          sudo mv tfsuit /usr/local/bin/tfsuit
+          sudo chmod a+x /usr/local/bin/tfsuit
+      - name: test
+        run: tfsuit -c tfsuit.example.json -d "tests"
