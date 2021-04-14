@@ -25,3 +25,13 @@ jobs:
           sudo chmod a+x /usr/local/bin/tfsuit
       - name: Test
         run: tfsuit -c=tfsuit.example.json -d=tests
+
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: "./src"
