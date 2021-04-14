@@ -10,10 +10,9 @@
         ]
       }
     },
-    "linter": {
-      "num_of_blank_lines_above": 1,
-      "num_of_blank_lines_below": 1,
-      "use_quotes": false
+    "line_breaks": {
+      "blank_lines_above": 1,
+      "blank_lines_below": 1
     }
   },
   "outputs": {
@@ -22,12 +21,12 @@
       "exact": null,
       "ignore": null
     },
-    "linter": null
+    "line_breaks": null
   },
   "blocks": {
-    "linter": {
-      "num_of_blank_lines_above": 0,
-      "num_of_blank_lines_below": 0
+    "line_breaks": {
+      "blank_lines_above": 1,
+      "blank_lines_below": 1
     }
   },
   "resources": {
