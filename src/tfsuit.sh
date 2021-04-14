@@ -23,7 +23,7 @@ tfsuit() {
     local not_compliant_vars
     local vars_sum
     vars_sum=$(eval_vars)
-    echo "$vars_sum" | jq
+    echo "$vars_sum"
   )
 }
 

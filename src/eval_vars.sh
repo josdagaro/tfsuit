@@ -57,6 +57,8 @@ eval_vars() {
 
   echo "{
     \"compliant\": ${compliant_vars_json_array},
-    \"not_compliant\": ${not_compliant_vars_json_array}
+    \"not_compliant\": ${not_compliant_vars_json_array},
+    \"compliant_vars_sum\": \"${compliant_vars}\",
+    \"not_compliant_vars_sum\": \"${not_compliant_vars}\"
   }"
 }
