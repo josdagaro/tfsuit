@@ -5,30 +5,12 @@ help=0
 debug=0
 verbose=0
 version=0
+fail_on_not_compliant=0
 dir=
-recursive=0
-extra_args=("${dummy_arg}") # Because set -u does not allow undefined variables to be used
+config_json_path=
 
-echo "All pre-getopt arguments: $*"
-getopt --test >/dev/null
-
-if [[ $? -ne 4 ]]; then
-  echo "I'm sorry, 'getopt --test' failed in this environment"
-  exit 1
-fi
-
-SHORT=hDVvd:r
-LONG=help,debug,verbose,version,dir:,recursive
-
-PARSED=$(getopt --options ${SHORT} \
-  --longoptions ${LONG} \
-  --name "$0" \
-  -- "$@") # Pass all the args to this script to getopt
-
-eval set -- "${PARSED}"
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
+for arg in "$@"; do
+  case $arg in
   -h | --help)
     help=1
     ;;
@@ -41,19 +23,19 @@ while [[ $# -gt 0 ]]; do
   -v | --version)
     version=1
     ;;
-  -d | --dir)
-    dir="$2"
-    shift
+  -d=* | --dir=*)
+    dir="${arg#*=}"
     ;;
-  -r | --recursive)
-    recursive=1
-    shift
+  -c=* | --config-json-path=*)
+    config_json_path="${arg#*=}"
     ;;
-  --)
-    shift
-    extra_args=("$@")
-    break
+  -f | --fail-on-not-compliant)
+    fail_on_not_compliant=1
     ;;
   esac
   shift
 done
+
+if [ -z "$dir" ] || [ -z "$config_json_path" ]; then
+  show_usage
+fi

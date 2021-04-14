@@ -11,6 +11,15 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     steps:
+      - name: Install gsht
+        run: |
+          wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht.gsht
+          sudo mv gsht.gsht /usr/local/bin/gsht
+          sudo chmod a+x /usr/local/bin/gsht
+      - name: transpile
+        run: |
+          gsht --input src/tfsuit.sh  --output tfsuit
+          zip --junk-paths tfsuit tfsuit
       - name: Tag
         if: github.event.pull_request.merged
         id: tag
@@ -31,3 +40,14 @@ jobs:
           release_name: ${{ steps.tag.outputs.tag }}
           draft: false
           prerelease: false
+      - name: Upload Release Asset
+        if: github.event.pull_request.merged
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ./tfsuit.zip
+          asset_name: tfsuit
+          asset_content_type: application/zip
