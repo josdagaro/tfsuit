@@ -11,6 +11,11 @@ inputs:
     description: "Whether to launch an exit 1 when it detects there are some rules that weren't accomplished"
     required: false
     default: "false"
+outputs:
+  compliant_vars:
+    description: "A JSON list of compliant vars"
+  not_complaint_vars:
+    description: "A JSON list of not compliant vars"
 runs:
   using: "docker"
   image: "Dockerfile"
@@ -18,3 +23,6 @@ runs:
     - ${{ inputs.dir }}
     - ${{ inputs.config-json-path }}
     - ${{ inputs.fail-on-not-compliant }}
+branding:
+  icon: "box"
+  color: "gray-dark"
