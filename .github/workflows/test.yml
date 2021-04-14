@@ -13,15 +13,15 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v2
-      - name: install gsht
+      - name: Install gsht
         run: |
           wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht.gsht
           sudo mv gsht.gsht /usr/local/bin/gsht
           sudo chmod a+x /usr/local/bin/gsht
-      - name: transpile
+      - name: Transpile
         run: |
           gsht --input src/tfsuit.sh  --output tfsuit
-          sudo mv tfsuit /usr/local/bin/tfsuit
+          sudo cp tfsuit /usr/local/bin/tfsuit
           sudo chmod a+x /usr/local/bin/tfsuit
-      - name: test
-        run: tfsuit -c=tfsuit.example.json -d=tests | jq
+      - name: Test
+        run: tfsuit -c=tfsuit.example.json -d=tests
