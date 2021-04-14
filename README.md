@@ -35,10 +35,9 @@ jobs:
         ]
       }
     },
-    "linter": {
-      "num_of_blank_lines_above": 1,
-      "num_of_blank_lines_below": 1,
-      "use_quotes": false
+    "line_breaks": {
+      "blank_lines_above": 1,
+      "blank_lines_below": 1
     }
   }
 }
