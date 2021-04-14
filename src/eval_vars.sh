@@ -37,7 +37,7 @@ eval_vars() {
     vars_naming_convention_match_pattern="${vars_naming_convention_match_pattern_beginning}${vars_naming_convention_match_pattern}"
     vars=$(get_vars "$vars_match_pattern_1")
     compliant_vars=$(echo "$vars" | grep -oE "$vars_naming_convention_match_pattern")
-    not_compliant_vars=$(echo "$vars" | grep -ovE "$vars_naming_convention_match_pattern" | grep -oP "$vars_match_pattern_1" | grep -oE "$vars_match_pattern_2")
+    not_compliant_vars=$(echo "$vars" | grep -vE "$vars_naming_convention_match_pattern" | grep -oP "$vars_match_pattern_1" | grep -oE "$vars_match_pattern_2")
   else
     compliant_vars=""
     not_compliant_vars=""
@@ -57,8 +57,6 @@ eval_vars() {
 
   echo "{
     \"compliant\": ${compliant_vars_json_array},
-    \"not_compliant\": ${not_compliant_vars_json_array},
-    \"compliant_vars_sum\": \"${compliant_vars}\",
-    \"not_compliant_vars_sum\": \"${not_compliant_vars}\"
+    \"not_compliant\": ${not_compliant_vars_json_array}
   }"
 }
