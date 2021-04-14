@@ -29,8 +29,9 @@ tfsuit() {
     echo "$compliant_vars" | jq
 
     if [ "${not_compliant_vars}" != "[]" ]; then
+      echo "not compliant vars:"
       echo "$not_compliant_vars" | jq
-      exit 1
+      die "There are vars that doesn't complaint" "$fail_on_not_compliant"
     fi
   )
 }

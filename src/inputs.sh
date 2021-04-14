@@ -5,6 +5,7 @@ help=0
 debug=0
 verbose=0
 version=0
+fail_on_not_compliant=0
 dir=
 config_json_path=
 
@@ -27,6 +28,9 @@ for arg in "$@"; do
     ;;
   -c=* | --config-json-path=*)
     config_json_path="${arg#*=}"
+    ;;
+  -f | --fail-on-not-compliant)
+    fail_on_not_compliant=1
     ;;
   esac
   shift
