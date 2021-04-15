@@ -16,7 +16,7 @@ jobs:
       - name: Install gsht
         run: |
           wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht.gsht
-          sudo mv gsht.gsht /usr/local/bin/gsht
+          sudo cp gsht.gsht /usr/local/bin/gsht
           sudo chmod a+x /usr/local/bin/gsht
       - name: Transpile
         run: |
@@ -25,3 +25,10 @@ jobs:
           sudo chmod a+x /usr/local/bin/tfsuit
       - name: Test
         run: tfsuit -c=tfsuit.example.json -d=tests
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: "."
+          ignore: "src tests"
+          severity: "error"
+          additional_files: "tfsuit"

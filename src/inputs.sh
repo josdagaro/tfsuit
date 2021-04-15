@@ -3,7 +3,6 @@
 # Initialize variables
 help=0
 debug=0
-verbose=0
 version=0
 fail_on_not_compliant=0
 dir=
@@ -16,9 +15,6 @@ for arg in "$@"; do
     ;;
   -D | --debug)
     debug=1
-    ;;
-  -V | --verbose)
-    verbose=1
     ;;
   -v | --version)
     version=1

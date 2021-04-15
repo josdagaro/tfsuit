@@ -1,4 +1,4 @@
-name: "tfsuit GitHub Actions"
+name: "tfsuit"
 description: "Terraform customizable tool for defining your standards, styles, and naming conventions"
 inputs:
   dir:
