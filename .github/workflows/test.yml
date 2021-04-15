@@ -20,8 +20,8 @@ jobs:
           sudo chmod a+x /usr/local/bin/gsht
       - name: Transpile
         run: |
-          gsht --input src/tfsuit.sh  --output tfsuit.sh
-          sudo cp tfsuit.sh /usr/local/bin/tfsuit
+          gsht --input src/tfsuit.sh  --output tfsuit
+          sudo cp tfsuit /usr/local/bin/tfsuit
           sudo chmod a+x /usr/local/bin/tfsuit
       - name: Test
         run: tfsuit -c=tfsuit.example.json -d=tests
@@ -30,3 +30,5 @@ jobs:
         with:
           scandir: "."
           ignore: "src tests"
+          severity: "error"
+          additional_files: "tfsuit"
