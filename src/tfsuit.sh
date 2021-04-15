@@ -26,17 +26,12 @@ tfsuit() {
     compliant_vars=$(echo "$vars_sum" | jq -r .compliant)
     not_compliant_vars=$(echo "$vars_sum" | jq -r .not_compliant)
     echo "compliant vars:"
-    echo "$compliant_vars" | jq
-    echo "::set-output name=compliant_vars::${compliant_vars}"
-    echo "::set-output name=not_compliant_vars::${not_compliant_vars}"
+    echo "::set-output name=compliant_vars::$(echo ${compliant_vars} | jq -rc)"
+    echo "not compliant vars:"
+    echo "::set-output name=not_compliant_vars::$(echo ${not_compliant_vars} | jq -rc)"
 
-    if [ "${not_compliant_vars}" != "[]" ]; then
-      echo "not compliant vars:"
-      echo "$not_compliant_vars" | jq
-
-      if [ "$fail_on_not_compliant" -eq 1 ]; then
-        die "[ERROR] There are vars that doesn't complaint" 1
-      fi
+    if [ "${not_compliant_vars}" != "[]" -a "$fail_on_not_compliant" -eq 1 ]; then
+      die "[ERROR] There are vars that doesn't complaint" 1
     fi
   )
 }
