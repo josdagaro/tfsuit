@@ -28,9 +28,9 @@ eval_vars() {
   local compliant_vars_json_array
   local not_compliant_vars
   local not_compliant_vars_json_array
-  vars_naming_convention_match_pattern=$(cat "$config_json_path" | jq -r .vars.naming_conventions.match_pattern)
+  vars_naming_convention_match_pattern=$(< "$config_json_path" jq -r .vars.naming_conventions.match_pattern)
 
-  if [ "$vars_naming_convention_match_pattern" != "null" -a ! -z "$vars_naming_convention_match_pattern" ]; then
+  if [ "$vars_naming_convention_match_pattern" != "null" ] && [ ! -z "$vars_naming_convention_match_pattern" ]; then
     vars_naming_convention_match_pattern_beginning="variable\s+"
     vars_match_pattern_1="^(?!#*$)([\s]+)?variable\s+[a-z0-9_]+"
     vars_match_pattern_2="variable\s+[a-z0-9_]+"

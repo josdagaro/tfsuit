@@ -8,7 +8,7 @@ die() {
 convert_array_to_json_array() {
   local array
   local json_array
-  array=($1)
+  mapfile -t array <<< "$1"
   json_array="["
 
   for elem in "${array[@]}"; do
