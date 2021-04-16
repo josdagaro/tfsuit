@@ -1,5 +1,5 @@
 #!/bin/bash
 
 version() {
-  echo "0.3.3"
+  echo "0.3.4"
 }
