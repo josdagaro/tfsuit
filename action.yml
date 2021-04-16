@@ -4,10 +4,10 @@ inputs:
   dir:
     description: "Whether the project is a module or a digital product (available values to pass are: | proj | mod |)"
     required: true
-  config-json-path:
+  config_json_path:
     description: "The TF project directory will be analyzed"
     required: true
-  fail-on-not-compliant:
+  fail_on_not_compliant:
     description: "Whether to launch an exit 1 when it detects there are some rules that weren't accomplished"
     required: false
     default: "false"
@@ -21,8 +21,8 @@ runs:
   image: "Dockerfile"
   args:
     - ${{ inputs.dir }}
-    - ${{ inputs.config-json-path }}
-    - ${{ inputs.fail-on-not-compliant }}
+    - ${{ inputs.config_json_path }}
+    - ${{ inputs.fail_on_not_compliant }}
 branding:
   icon: "box"
   color: "gray-dark"
