@@ -9,7 +9,7 @@ get_vars() {
   vars=""
 
   while read -r tf_file; do
-    code=$(cat "$tf_file")
+    code=$(< "$tf_file")
     tf_vars=$(echo "$code" | grep -oP "$1")
     vars+="
     ${tf_vars}"

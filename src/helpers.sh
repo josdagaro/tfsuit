@@ -8,13 +8,11 @@ die() {
 convert_array_to_json_array() {
   local array
   local json_array
-  mapfile -t array <<< "$1"
+  mapfile -t array <<<"$1"
   json_array="["
 
   for elem in "${array[@]}"; do
-    if [ "$elem" != "variable" ]; then
-      json_array="$json_array\"$elem\","
-    fi
+    json_array="$json_array\"$elem\","
   done
 
   if [ "$json_array" != "[" ]; then
@@ -37,13 +35,13 @@ find_tf_files() {
     command_find+="-type d \( "
 
     while read -r ignored; do
-      command_find+=" -name ${ignored} -o"
+      command_find+=" -name '${ignored}' -o"
     done < <(cat .tfsuitignore)
 
     command_find="${command_find::${#command_find}-2}\) -prune -false -o "
   fi
 
-  command_find+="-name *.tf"
+  command_find+="-name '*.tf'"
   echo "$command_find" >/tmp/tfsuit_find.sh
   result=$(bash /tmp/tfsuit_find.sh)
   rm -f /tmp/tfsuit_find.sh
