@@ -6,18 +6,10 @@ tfsuit() {
   (
     source helpers.sh
     source usage.sh
+    source version.sh
     source inputs.sh
     source check_deps.sh
-    source version.sh
     source eval_vars.sh
-
-    if [[ "$version" -eq 1 ]]; then
-      die "$(version)"
-    fi
-
-    if [[ "$help" -eq 1 ]]; then
-      die "$(version)"
-    fi
 
     local compliant_vars
     local not_compliant_vars

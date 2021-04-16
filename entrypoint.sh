@@ -17,6 +17,7 @@ echo "inputs:
   ${fail_on_not_compliant_flag}
 "
 
+tfsuit --version
 tfsuit "$dir_flag" "$config_json_path_flag" "$fail_on_not_compliant_flag"
 tfsuit_exit_code=$?
 exit "$tfsuit_exit_code"

@@ -6,7 +6,8 @@
       "ignore": {
         "match_pattern": null,
         "exact": [
-          "route53_domain"
+          "route53_domain",
+          "tags"
         ]
       }
     },

@@ -23,6 +23,15 @@ convert_array_to_json_array() {
   echo "$json_array"
 }
 
+convert_json_array_to_array() {
+  local json_array
+  json_array="$1"
+
+  for row in $(echo "$json_array" | jq -r '.[]'); do
+    echo "$row"
+  done
+}
+
 find_tf_files() {
   local dir
   local command_find

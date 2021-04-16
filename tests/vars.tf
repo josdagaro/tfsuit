@@ -16,3 +16,8 @@ variable cidr_vpc {}
 variable ec2_nlb_0_name_virginia {}
 variable nlb_0_ec2_name {}
 variable nlb_0_name {}
+variable route53_domain {}
+
+
+
+variable tags {}
