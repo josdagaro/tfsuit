@@ -32,6 +32,14 @@ for arg in "$@"; do
   shift
 done
 
+if [[ "$version" -eq 1 ]]; then
+  die "$(version)"
+fi
+
+if [[ "$help" -eq 1 ]]; then
+  die "$(version)"
+fi
+
 if [ -z "$dir" ] || [ -z "$config_json_path" ]; then
   show_usage
 fi

@@ -13,13 +13,23 @@ Terraform customizable tool for defining your standards, styles, and naming conv
 tfsuit --dir="/my/project/path" --config-json-path="/my/project/path/tfsuit.json"
 ```
 
-## GitHub Actions
+### GitHub Actions
 ```yml
 jobs:
-  # ...
+  tfsuit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run tfsuit
+        id: tfsuit
+        uses: josdagaro/tfsuit@v0.3.4
+        with:
+          dir: "."
+          config_json_path: tfsuit.json
+          fail_on_not_compliant: "true"
 ```
 
-## Configuration file
+##@ Configuration file
 ##### Common match patterns:
 ```json
 // For TF projects' variables
