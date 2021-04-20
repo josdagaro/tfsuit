@@ -7,6 +7,7 @@ version=0
 fail_on_not_compliant=0
 dir=
 config_json_path=
+docs_link=
 
 for arg in "$@"; do
   case $arg in
@@ -27,6 +28,9 @@ for arg in "$@"; do
     ;;
   -f | --fail-on-not-compliant)
     fail_on_not_compliant=1
+    ;;
+  -dl=* | --docs-link=*)
+    docs_link="${arg#*=}"
     ;;
   esac
   shift

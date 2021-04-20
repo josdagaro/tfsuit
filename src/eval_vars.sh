@@ -40,6 +40,7 @@ exclude_exact_ignored_vars() {
 
   for var in "${vars[@]}"; do
     is_ignored=0
+
     for ignored_var in "${ignored_vars[@]}"; do
       if [ "$var" == "$ignored_var" ]; then
         is_ignored=1

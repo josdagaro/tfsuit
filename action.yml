@@ -11,6 +11,10 @@ inputs:
     description: "Whether to launch an exit 1 when it detects there are some rules that weren't accomplished"
     required: false
     default: "false"
+  docs_link:
+    description: "Related documentation link to show when tfsuit fails because not compliant rules"
+    required: false
+    default: ""
 outputs:
   compliant_vars:
     description: "A JSON list of compliant vars"
@@ -23,6 +27,7 @@ runs:
     - ${{ inputs.dir }}
     - ${{ inputs.config_json_path }}
     - ${{ inputs.fail_on_not_compliant }}
+    - ${{ inputs.docs_link }}
 branding:
   icon: "box"
   color: "gray-dark"
