@@ -12,7 +12,9 @@ convert_array_to_json_array() {
   json_array="["
 
   for elem in "${array[@]}"; do
-    json_array="$json_array\"$elem\","
+    if [ ! -z "$elem" ]; then
+      json_array="$json_array\"$elem\","
+    fi
   done
 
   if [ "$json_array" != "[" ]; then

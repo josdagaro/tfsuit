@@ -14,6 +14,7 @@ tfsuit() {
     local compliant_vars
     local not_compliant_vars
     local vars_sum
+    local vars_message
     vars_sum=$(eval_vars)
     compliant_vars=$(echo "$vars_sum" | jq -r .compliant)
     not_compliant_vars=$(echo "$vars_sum" | jq -r .not_compliant)
@@ -25,7 +26,13 @@ tfsuit() {
     echo "::set-output name=not_compliant_vars::$(echo ${not_compliant_vars} | jq -rc)"
 
     if [ "${not_compliant_vars}" != "[]" -a "$fail_on_not_compliant" -eq 1 ]; then
-      die "[ERROR] There are vars that doesn't complaint" 1
+      vars_message="[ERROR] There are vars that doesn't complaint."
+
+      if [ ! -z "$docs_link" ]; then
+        vars_message+=" Please, check the related docs: ${docs_link}"
+      fi
+
+      die "$vars_message" 1
     fi
   )
 }
