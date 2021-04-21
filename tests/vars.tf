@@ -1,4 +1,4 @@
-variable vpc_cidr {}
+variable "vpc_cidr" {}
 variable vpc_cidr_virginia {}
 
 variable vpc_cidr1_virginia {
@@ -21,3 +21,8 @@ variable route53_domain {}
 
 
 variable tags {}
+
+variable "env" {
+  description = "The environment where the infrastructure is setting up"
+  type        = string
+}

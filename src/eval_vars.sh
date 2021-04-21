@@ -72,8 +72,8 @@ eval_vars() {
 
   if [ "$vars_naming_convention_match_pattern" != "null" -a ! -z "$vars_naming_convention_match_pattern" ]; then
     vars_naming_convention_match_pattern_beginning="variable\s+"
-    vars_match_pattern_1="^(?!#*$)([\s]+)?variable\s+[a-z0-9_]+"
-    vars_match_pattern_2="variable\s+[a-z0-9_]+"
+    vars_match_pattern_1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")'
+    vars_match_pattern_2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")'
     vars_naming_convention_match_pattern="${vars_naming_convention_match_pattern_beginning}${vars_naming_convention_match_pattern}"
     vars=$(get_vars "$vars_match_pattern_1")
     compliant_vars=$(echo "$vars" | grep -oE "$vars_naming_convention_match_pattern")
