@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.5.1] - 20-04-2021
+### Added
+Nothing
+### Changed
+Nothing
+### Fixed
+- Escape double quotes
+
 ## [v0.5.0] - 20-04-2021
 ### Added
 - New parameter for referencing docs (standards and naming conventions)
