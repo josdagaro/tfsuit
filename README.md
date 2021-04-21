@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Run tfsuit
         id: tfsuit
-        uses: josdagaro/tfsuit@v0.5.0
+        uses: josdagaro/tfsuit@vX.Y.Z
         with:
           dir: "."
           config_json_path: tfsuit.json
