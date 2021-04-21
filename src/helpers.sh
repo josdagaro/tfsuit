@@ -13,6 +13,7 @@ convert_array_to_json_array() {
 
   for elem in "${array[@]}"; do
     if [ ! -z "$elem" ]; then
+      elem="${elem//\"/\\\"}"
       json_array="$json_array\"$elem\","
     fi
   done
