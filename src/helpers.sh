@@ -45,7 +45,7 @@ find_tf_files() {
   command_find="#!/usr/bin/env bash
   find ${dir} "
 
-  if [ -f "$tfsuitignore_file_name" ] && [ ! -s "$tfsuitignore_file_name" ]; then
+  if [ -f "$tfsuitignore_file_name" -a ! -s "$tfsuitignore_file_name" ]; then
     command_find+="-type d \( "
 
     while IFS= read -r line; do
