@@ -39,16 +39,24 @@ find_tf_files() {
   local dir
   local command_find
   local result
+  local tfsuitignore_file_name
+  tfsuitignore_file_name=".tfsuitignore"
   dir="$1"
   command_find="#!/usr/bin/env bash
   find ${dir} "
 
-  if [ -f ".tfsuitignore" ]; then
+  if [ -f "$tfsuitignore_file_name" -a ! -s "$tfsuitignore_file_name" ]; then
     command_find+="-type d \( "
 
-    while read -r ignored; do
-      command_find+=" -name '${ignored}' -o"
-    done < <(cat .tfsuitignore)
+    while IFS= read -r line; do
+      if [ -d "$line" ]; then
+        command_find+=" -name '${line}' -o"
+      elif [ -f "$line" ]; then # TODO: Add a grep to allow regular expressions like *.json
+        command_find+=" -path '${line}' -o"
+      else
+        die "Directory or file ${line} doesn't exists"
+      fi
+    done <"$tfsuitignore_file_name"
 
     command_find="${command_find::${#command_find}-2}\) -prune -false -o "
   fi
