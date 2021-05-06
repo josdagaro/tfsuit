@@ -63,16 +63,16 @@ eval() {
 
   for arg in "$@"; do
     case $arg in
-    --context)
+    --context=*)
       context="${arg#*=}"
       ;;
-    --obj-naming-convention-match-pattern-beginning)
+    --obj-naming-convention-match-pattern-beginning=*)
       objects_naming_convention_match_pattern_beginning="${arg#*=}"
       ;;
-    --obj-match-pattern-1)
+    --obj-match-pattern-1=*)
       objects_match_pattern_1="${arg#*=}"
       ;;
-    --obj-match-pattern-2)
+    --obj-match-pattern-2=*)
       objects_match_pattern_2="${arg#*=}"
       ;;
     esac
