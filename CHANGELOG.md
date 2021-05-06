@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.6.0] - 05-05-2021
+### Added
+- Outputs analysis
+### Changed
+Nothing
+### Fixed
+Nothing
+
 ## [v0.5.2] - 26-04-2021
 ### Added
 Nothing
