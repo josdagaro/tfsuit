@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.6.1] - 05-05-2021
+### Added
+Nothing
+### Changed
+Nothing
+### Fixed
+- Unbound variables
+
 ## [v0.6.0] - 05-05-2021
 ### Added
 - Outputs analysis
