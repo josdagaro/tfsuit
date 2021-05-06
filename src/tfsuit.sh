@@ -21,6 +21,8 @@ tfsuit() {
     local outputs_message
     local error_exists
     local message
+    vars_message=""
+    outputs_message=""
     message="[ERROR]"
     error_exists=0
     vars_sum=$(eval --context="vars" --context-full-name="variable" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
