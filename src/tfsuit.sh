@@ -60,7 +60,7 @@ tfsuit() {
       $outputs_message
     "
 
-    if [ "$fail_on_not_compliant" -eq 1 ]; then
+    if [ "$error_exists" -eq 1 -a "$fail_on_not_compliant" -eq 1 ]; then
       if [ ! -z "$docs_link" ]; then
         message+=" Please, check the related docs: ${docs_link}"
       fi
