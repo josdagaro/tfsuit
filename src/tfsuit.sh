@@ -15,7 +15,7 @@ tfsuit() {
     local not_compliant_vars
     local vars_sum
     local vars_message
-    vars_sum=$(eval --context="vars" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    vars_sum=$(eval --context="vars" --context-full-name="variable" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
     compliant_vars=$(echo "$vars_sum" | jq -r .compliant)
     not_compliant_vars=$(echo "$vars_sum" | jq -r .not_compliant)
     echo "compliant vars:"
