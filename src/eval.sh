@@ -88,15 +88,15 @@ eval() {
   local not_compliant_objects
   local not_compliant_objects_json_array
   local ignored_objects
-  objects_naming_convention_match_pattern=$(jq <"$config_json_path" -r .${context}.naming_conventions.match_pattern)
-  objects_naming_convention_ignore_match_pattern=$(jq <"$config_json_path" -r .${context}.naming_conventions.ignore.match_pattern)
-  objects_naming_convention_ignore_exact=$(jq <"$config_json_path" -r .${context}.naming_conventions.ignore.exact)
+  objects_naming_convention_match_pattern=$(jq <"$config_json_path" -r --arg ctx "$context" .$ctx.naming_conventions.match_pattern)
+  objects_naming_convention_ignore_match_pattern=$(jq <"$config_json_path" -r --arg ctx "$context" .$ctx.naming_conventions.ignore.match_pattern)
+  objects_naming_convention_ignore_exact=$(jq <"$config_json_path" -r --arg ctx "$context" .$ctx.naming_conventions.ignore.exact)
 
   if [ "$objects_naming_convention_match_pattern" != "null" -a ! -z "$objects_naming_convention_match_pattern" ]; then
     objects_naming_convention_match_pattern="${objects_naming_convention_match_pattern_beginning}${objects_naming_convention_match_pattern}"
-    vars=$(get_objects "$objects_match_pattern_1")
-    compliant_objects=$(echo "$vars" | grep -oE "$objects_naming_convention_match_pattern")
-    not_compliant_objects=$(echo "$vars" | grep -vE "$objects_naming_convention_match_pattern" | grep -oP "$objects_match_pattern_1" | grep -oE "$objects_match_pattern_2")
+    objects=$(get_objects "$objects_match_pattern_1")
+    compliant_objects=$(echo "$objects" | grep -oE "$objects_naming_convention_match_pattern")
+    not_compliant_objects=$(echo "$objects" | grep -vE "$objects_naming_convention_match_pattern" | grep -oP "$objects_match_pattern_1" | grep -oE "$objects_match_pattern_2")
   else
     compliant_objects=""
     not_compliant_objects=""
