@@ -88,9 +88,9 @@ eval() {
   local not_compliant_objects
   local not_compliant_objects_json_array
   local ignored_objects
-  objects_naming_convention_match_pattern=$(jq <"$config_json_path" -r --arg ctx "$context" .$ctx.naming_conventions.match_pattern)
-  objects_naming_convention_ignore_match_pattern=$(jq <"$config_json_path" -r --arg ctx "$context" .$ctx.naming_conventions.ignore.match_pattern)
-  objects_naming_convention_ignore_exact=$(jq <"$config_json_path" -r --arg ctx "$context" .$ctx.naming_conventions.ignore.exact)
+  objects_naming_convention_match_pattern=$(jq <"$config_json_path" -r --arg ctx "$context" .[$ctx].naming_conventions.match_pattern)
+  objects_naming_convention_ignore_match_pattern=$(jq <"$config_json_path" -r --arg ctx "$context" .[$ctx].naming_conventions.ignore.match_pattern)
+  objects_naming_convention_ignore_exact=$(jq <"$config_json_path" -r --arg ctx "$context" .[$ctx].naming_conventions.ignore.exact)
 
   if [ "$objects_naming_convention_match_pattern" != "null" -a ! -z "$objects_naming_convention_match_pattern" ]; then
     objects_naming_convention_match_pattern="${objects_naming_convention_match_pattern_beginning}${objects_naming_convention_match_pattern}"
