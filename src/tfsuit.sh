@@ -9,13 +9,14 @@ tfsuit() {
     source version.sh
     source inputs.sh
     source check_deps.sh
-    source eval_vars.sh
+    #source eval_vars.sh
+    source eval.sh
 
     local compliant_vars
     local not_compliant_vars
     local vars_sum
     local vars_message
-    vars_sum=$(eval_vars)
+    vars_sum=$(eval --context="vars" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
     compliant_vars=$(echo "$vars_sum" | jq -r .compliant)
     not_compliant_vars=$(echo "$vars_sum" | jq -r .not_compliant)
     echo "compliant vars:"
