@@ -57,6 +57,7 @@ exclude_exact_ignored_objects() {
 
 eval() {
   local context
+  local context_full_name
   local objects_naming_convention_match_pattern_beginning
   local objects_match_pattern_1
   local objects_match_pattern_2
@@ -65,6 +66,9 @@ eval() {
     case $arg in
     --context=*)
       context="${arg#*=}"
+      ;;
+    --context-full-name=*)
+      context_full_name="${arg#*=}"
       ;;
     --obj-naming-convention-match-pattern-beginning=*)
       objects_naming_convention_match_pattern_beginning="${arg#*=}"
@@ -114,7 +118,7 @@ eval() {
   if [ -z "$compliant_objects" ]; then
     compliant_objects_json_array="[]"
   else
-    compliant_objects=$(trim_objects "$compliant_objects")
+    compliant_objects=$(trim_objects "$compliant_objects" "$context_full_name")
     compliant_objects=$(exclude_exact_ignored_objects "$compliant_objects" "$ignored_objects")
     compliant_objects_json_array=$(convert_array_to_json_array "$compliant_objects")
   fi
@@ -122,7 +126,7 @@ eval() {
   if [ -z "$not_compliant_objects" ]; then
     not_compliant_objects_json_array="[]"
   else
-    not_compliant_objects=$(trim_objects "$not_compliant_objects")
+    not_compliant_objects=$(trim_objects "$not_compliant_objects" "$context_full_name")
     not_compliant_objects=$(exclude_exact_ignored_objects "$not_compliant_objects" "$ignored_objects")
     not_compliant_objects_json_array=$(convert_array_to_json_array "$not_compliant_objects")
   fi
