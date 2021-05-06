@@ -44,6 +44,8 @@ exclude_exact_ignored_objects() {
     is_ignored=0
 
     for ignored_object in "${ignored_objects[@]}"; do
+      object=`echo "$object" | sed -e 's/^[[:space:]]*//'`
+      
       if [ "$object" == "$ignored_object" ]; then
         is_ignored=1
       fi
