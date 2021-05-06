@@ -9,7 +9,6 @@ tfsuit() {
     source version.sh
     source inputs.sh
     source check_deps.sh
-    #source eval_vars.sh
     source eval.sh
 
     local compliant_vars

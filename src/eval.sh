@@ -114,16 +114,16 @@ eval() {
   if [ -z "$compliant_objects" ]; then
     compliant_objects_json_array="[]"
   else
-    compliant_objects=$(trim_vars "$compliant_objects")
-    compliant_objects=$(exclude_exact_ignored_vars "$compliant_objects" "$ignored_vars")
+    compliant_objects=$(trim_objects "$compliant_objects")
+    compliant_objects=$(exclude_exact_ignored_objects "$compliant_objects" "$ignored_objects")
     compliant_objects_json_array=$(convert_array_to_json_array "$compliant_objects")
   fi
 
   if [ -z "$not_compliant_objects" ]; then
     not_compliant_objects_json_array="[]"
   else
-    not_compliant_objects=$(trim_vars "$not_compliant_objects")
-    not_compliant_objects=$(exclude_exact_ignored_vars "$not_compliant_objects" "$ignored_vars")
+    not_compliant_objects=$(trim_objects "$not_compliant_objects")
+    not_compliant_objects=$(exclude_exact_ignored_objects "$not_compliant_objects" "$ignored_objects")
     not_compliant_objects_json_array=$(convert_array_to_json_array "$not_compliant_objects")
   fi
 
