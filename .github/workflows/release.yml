@@ -14,8 +14,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Install gsht
         run: |
-          wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht.gsht
-          sudo mv gsht.gsht /usr/local/bin/gsht
+          wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht
+          sudo mv gsht /usr/local/bin/gsht
           sudo chmod a+x /usr/local/bin/gsht
       - name: transpile
         run: |
