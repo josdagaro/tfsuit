@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.6.4] - 25-04-2022
+### Added
+Nothing
+### Changed
+Nothing
+### Fixed
+- Change the tool gsht version to v0.1.0 regarding the version nightly isn't available
+
 ## [v0.6.3] - 05-05-2021
 ### Added
 Nothing
