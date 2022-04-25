@@ -6,7 +6,7 @@ RUN apt update -y \
   && apt install -y jq wget
 
 # Install gsht
-RUN wget https://github.com/NekoOs/gsht.sh/releases/download/nightly/gsht; \
+RUN wget https://github.com/NekoOs/gsht.sh/releases/download/v0.1.0/gsht; \
   mv gsht /usr/local/bin/gsht; \
   chmod a+x /usr/local/bin/gsht;
 
