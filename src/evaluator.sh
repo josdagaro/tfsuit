@@ -44,7 +44,7 @@ evaluator::exclude_exact_ignored_objects() {
     is_ignored=0
 
     for ignored_object in "${ignored_objects[@]}"; do
-      object=`echo "$object" | sed -e 's/^[[:space:]]*//'`
+      object=$(echo "$object" | sed -e 's/^[[:space:]]*//')
       
       if [ "$object" == "$ignored_object" ]; then
         is_ignored=1
@@ -98,7 +98,7 @@ evaluator::eval() {
   objects_naming_convention_ignore_match_pattern=$(jq <"$config_json_path" -r --arg ctx "$context" '.[$ctx].naming_conventions.ignore.match_pattern')
   objects_naming_convention_ignore_exact=$(jq <"$config_json_path" -r --arg ctx "$context" '.[$ctx].naming_conventions.ignore.exact')
 
-  if [ "$objects_naming_convention_match_pattern" != "null" -a ! -z "$objects_naming_convention_match_pattern" ]; then
+  if [ "$objects_naming_convention_match_pattern" != "null" ] && [ -n "$objects_naming_convention_match_pattern" ]; then
     objects_naming_convention_match_pattern="${objects_naming_convention_match_pattern_beginning}${objects_naming_convention_match_pattern}"
     objects=$(evaluator::get_objects "$objects_match_pattern_1")
     compliant_objects=$(echo "$objects" | grep -oE "$objects_naming_convention_match_pattern")
@@ -108,10 +108,10 @@ evaluator::eval() {
     not_compliant_objects=""
   fi
 
-  if [ "$objects_naming_convention_ignore_match_pattern" != "null" -a ! -z "$objects_naming_convention_ignore_match_pattern" ]; then
+  if [ "$objects_naming_convention_ignore_match_pattern" != "null" ] && [ -n "$objects_naming_convention_ignore_match_pattern" ]; then
     # Do something...
     ignored_objects="[]"
-  elif [ "$objects_naming_convention_ignore_exact" != "null" -a ! -z "$objects_naming_convention_ignore_exact" ]; then
+  elif [ "$objects_naming_convention_ignore_exact" != "null" ] && [ -n "$objects_naming_convention_ignore_exact" ]; then
     ignored_objects=$(helper::convert_json_array_to_array "$objects_naming_convention_ignore_exact")
   else
     ignored_objects="[]"

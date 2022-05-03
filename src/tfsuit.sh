@@ -30,10 +30,10 @@ tfsuit() {
     not_compliant_vars=$(echo "$vars_sum" | jq -r .not_compliant)
     echo "compliant vars:"
     echo "$compliant_vars" | jq
-    echo "::set-output name=compliant_vars::$(echo ${compliant_vars} | jq -rc)"
+    echo "::set-output name=compliant_vars::$(echo "$compliant_vars" | jq -rc)"
     echo "not compliant vars:"
     echo "$not_compliant_vars" | jq
-    echo "::set-output name=not_compliant_vars::$(echo ${not_compliant_vars} | jq -rc)"
+    echo "::set-output name=not_compliant_vars::$(echo "$not_compliant_vars" | jq -rc)"
 
     if [ "${not_compliant_vars}" != "[]" ]; then
       vars_message="There are vars that doesn't complaint."
@@ -45,10 +45,10 @@ tfsuit() {
     not_compliant_outputs=$(echo "$outputs_sum" | jq -r .not_compliant)
     echo "compliant outputs:"
     echo "$compliant_outputs" | jq
-    echo "::set-output name=compliant_outputs::$(echo ${compliant_outputs} | jq -rc)"
+    echo "::set-output name=compliant_outputs::$(echo "$compliant_outputs" | jq -rc)"
     echo "not compliant outputs:"
     echo "$not_compliant_outputs" | jq
-    echo "::set-output name=not_compliant_outputs::$(echo ${not_compliant_outputs} | jq -rc)"
+    echo "::set-output name=not_compliant_outputs::$(echo "$not_compliant_outputs" | jq -rc)"
 
     if [ "${not_compliant_outputs}" != "[]" ]; then
       outputs_message="There are outputs that doesn't complaint."
@@ -60,9 +60,9 @@ tfsuit() {
       $outputs_message
     "
 
-    if [ "$error_exists" -eq 1 -a "$fail_on_not_compliant" -eq 1 ]; then
-      if [ ! -z "$docs_link" ]; then
-        message+=" Please, check the related docs: ${docs_link}"
+    if [ "$error_exists" -eq 1 ] && [ "$fail_on_not_compliant" -eq 1 ]; then
+      if [ -n "$docs_link" ]; then
+        message+=" Please, check the related docs: $docs_link"
       fi
 
       helper::die "$message" 1

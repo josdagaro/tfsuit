@@ -12,8 +12,8 @@ helper::convert_array_to_json_array() {
   json_array="["
 
   for elem in "${array[@]}"; do
-    if [ ! -z "$elem" ]; then
-      elem=`echo "$elem" | sed -e 's/^[[:space:]]*//'`
+    if [ -n "$elem" ]; then
+      elem=$(echo "$elem" | sed -e 's/^[[:space:]]*//')
       elem="${elem//\"/\\\"}"
       json_array="$json_array\"$elem\","
     fi
