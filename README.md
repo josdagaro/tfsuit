@@ -49,8 +49,8 @@ jobs:
       }
     },
     "line_breaks": {
-      "blank_lines_above": 1,
-      "blank_lines_below": 1
+      "above": 1,
+      "below": 1
     }
   }
 }

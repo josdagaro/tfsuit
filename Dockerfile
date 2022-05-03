@@ -13,7 +13,7 @@ RUN wget https://github.com/NekoOs/gsht.sh/releases/download/v0.1.0/gsht; \
 COPY src .
 
 # Transpile tfsuit
-RUN gsht --input tfsuit.sh  --output tfsuit; \
+RUN gsht --input tfsuit.sh --output tfsuit; \
   mv tfsuit /usr/local/bin/tfsuit; \
   chmod a+x /usr/local/bin/tfsuit
 

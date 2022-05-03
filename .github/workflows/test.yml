@@ -20,7 +20,7 @@ jobs:
           sudo chmod a+x /usr/local/bin/gsht
       - name: Transpile
         run: |
-          gsht --input src/tfsuit.sh  --output tfsuit
+          gsht --input src/tfsuit.sh --output tfsuit
           sudo cp tfsuit /usr/local/bin/tfsuit
           sudo chmod a+x /usr/local/bin/tfsuit
       - name: Test
@@ -29,6 +29,7 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           scandir: "."
-          ignore: "src tests"
-          severity: "error"
+          ignore_paths: "src tests"
+          severity: "warning" # options: error, warning, info, style
           additional_files: "tfsuit"
+          format: tty

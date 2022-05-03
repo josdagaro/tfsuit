@@ -2,7 +2,7 @@
 
 # Initialize variables
 help=0
-debug=0
+# debug=0
 version=0
 fail_on_not_compliant=0
 dir=
@@ -14,9 +14,9 @@ for arg in "$@"; do
   -h | --help)
     help=1
     ;;
-  -D | --debug)
-    debug=1
-    ;;
+#  -D | --debug)
+#    debug=1
+#    ;;
   -v | --version)
     version=1
     ;;
@@ -37,13 +37,13 @@ for arg in "$@"; do
 done
 
 if [[ "$version" -eq 1 ]]; then
-  die "$(version)"
+  helper::die "$(version)"
 fi
 
 if [[ "$help" -eq 1 ]]; then
-  die "$(version)"
+  helper::die "$(version)"
 fi
 
 if [ -z "$dir" ] || [ -z "$config_json_path" ]; then
-  show_usage
+  usage::show
 fi

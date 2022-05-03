@@ -1,6 +1,6 @@
 #!/bin/bash
 
-show_usage() {
-  die "usage: 
+usage::show() {
+  helper::die "usage: 
   "
 }
