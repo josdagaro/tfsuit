@@ -30,6 +30,6 @@ jobs:
         with:
           scandir: "."
           ignore_paths: "src tests"
-          severity: "error"
+          severity: "warning" # options: error, warning, info, style
           additional_files: "tfsuit"
           format: tty
