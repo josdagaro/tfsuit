@@ -1,11 +1,11 @@
 #!/bin/bash
 
-die() {
+helper::die() {
   echo "$1"
   exit "${2:-0}"
 }
 
-convert_array_to_json_array() {
+helper::convert_array_to_json_array() {
   local array
   local json_array
   mapfile -t array <<<"$1"
@@ -27,7 +27,7 @@ convert_array_to_json_array() {
   echo "$json_array"
 }
 
-convert_json_array_to_array() {
+helper::convert_json_array_to_array() {
   local json_array
   json_array="$1"
 
@@ -36,7 +36,7 @@ convert_json_array_to_array() {
   done
 }
 
-find_tf_files() {
+helper::find_tf_files() {
   local dir
   local command_find
   local result
@@ -55,7 +55,7 @@ find_tf_files() {
       elif [ -f "$line" ]; then # TODO: Add a grep to allow regular expressions like *.json
         command_find+=" -path '${line}' -o"
       else
-        die "Directory or file ${line} doesn't exists"
+        helper::die "Directory or file ${line} doesn't exists"
       fi
     done <"$tfsuitignore_file_name"
 

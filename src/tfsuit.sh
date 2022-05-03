@@ -9,7 +9,7 @@ tfsuit() {
     source version.sh
     source inputs.sh
     source check_deps.sh
-    source eval.sh
+    source evaluator.sh
 
     local compliant_vars
     local not_compliant_vars
@@ -25,7 +25,7 @@ tfsuit() {
     outputs_message=""
     message="[ERROR]"
     error_exists=0
-    vars_sum=$(eval --context="vars" --context-full-name="variable" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    vars_sum=$(evaluator::eval --context="vars" --context-full-name="variable" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
     compliant_vars=$(echo "$vars_sum" | jq -r .compliant)
     not_compliant_vars=$(echo "$vars_sum" | jq -r .not_compliant)
     echo "compliant vars:"
@@ -40,7 +40,7 @@ tfsuit() {
       error_exists=1
     fi
 
-    outputs_sum=$(eval --context="outputs" --context-full-name="output" --obj-naming-convention-match-pattern-beginning="output\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?output\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='output\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    outputs_sum=$(evaluator::eval --context="outputs" --context-full-name="output" --obj-naming-convention-match-pattern-beginning="output\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?output\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='output\s+([a-z0-9_]+|"[a-z0-9_]+")')
     compliant_outputs=$(echo "$outputs_sum" | jq -r .compliant)
     not_compliant_outputs=$(echo "$outputs_sum" | jq -r .not_compliant)
     echo "compliant outputs:"
@@ -65,7 +65,7 @@ tfsuit() {
         message+=" Please, check the related docs: ${docs_link}"
       fi
 
-      die "$message" 1
+      helper::die "$message" 1
     fi
   )
 }

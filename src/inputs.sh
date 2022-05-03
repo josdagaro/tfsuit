@@ -37,13 +37,13 @@ for arg in "$@"; do
 done
 
 if [[ "$version" -eq 1 ]]; then
-  die "$(version)"
+  helper::die "$(version)"
 fi
 
 if [[ "$help" -eq 1 ]]; then
-  die "$(version)"
+  helper::die "$(version)"
 fi
 
 if [ -z "$dir" ] || [ -z "$config_json_path" ]; then
-  show_usage
+  usage::show
 fi
