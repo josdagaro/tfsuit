@@ -32,3 +32,4 @@ jobs:
           ignore_paths: "src tests"
           severity: "error"
           additional_files: "tfsuit"
+          format: tty
