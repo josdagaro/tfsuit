@@ -39,7 +39,7 @@
   },
   "modules": {
     "naming_conventions": {
-      "match_pattern": "",
+      "match_pattern": "\"[a-z0-9_]+\"",
       "exact": null,
       "ignore": null
     }
