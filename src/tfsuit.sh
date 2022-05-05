@@ -30,6 +30,7 @@ tfsuit() {
     local message
     vars_message=""
     outputs_message=""
+    mods_message=""
     message="[ERROR]"
     error_exists=0
     vars_sum=$(evaluator::eval --context="vars" --context-full-name="variable" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
@@ -71,6 +72,11 @@ tfsuit() {
     echo "not compliant modules:"
     echo "$not_compliant_mods" | jq
     echo "::set-output name=not_compliant_modules::$(echo "$not_compliant_mods" | jq -rc)"
+
+    if [ "${not_compliant_mods}" != "[]" ]; then
+      mods_message="There are modules that doesn't complaint."
+      error_exists=1
+    fi
 
     message+="
       $vars_message
