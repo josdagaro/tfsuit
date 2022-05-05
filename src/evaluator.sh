@@ -18,6 +18,9 @@ evaluator::get_objects() {
   echo "$objects"
 }
 
+# In this function the type of object is removed for getting just the name of the object...
+# so, regarding that, if the object type is "variable" and the name is "foobar"...
+# the word "variable" will be removed leaving just "foobar"
 evaluator::trim_objects() {
   local objects
   local trimed_objects
