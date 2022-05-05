@@ -52,6 +52,20 @@ jobs:
       "above": 1,
       "below": 1
     }
+  },
+  "outputs": {
+    "naming_conventions": {
+      "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b",
+      "exact": null,
+      "ignore": {
+        "match_pattern": null,
+        "exact": []
+      }
+    },
+    "line_breaks": {
+      "above": 1,
+      "below": 1
+    }
   }
 }
 ```
