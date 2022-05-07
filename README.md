@@ -34,7 +34,6 @@ jobs:
 
 ### Configuration file
 ##### Common match patterns:
-`For Terraform projects' variables:`
 ```json
 {
   "vars": {
