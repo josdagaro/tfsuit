@@ -10,6 +10,7 @@ tfsuit() {
     source inputs.sh
     source check_deps.sh
     source evaluator.sh
+    source providers/aws.sh
 
     # Initialization of variables for TF variables
     local compliant_vars

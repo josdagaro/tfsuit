@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [v0.9.0] - 06-05-2022
+### Added
+- Added support for analysing AWS resources and checking naming conventions for them
+### Changed
+Nothing
+### Fixed
+Nothing
+
 ## [v0.8.0] - 04-05-2022
 ### Added
 - Comments for improving the understanding of the function `evaluator::trim_objects` and support for evaluating Terraform modules' naming conventions

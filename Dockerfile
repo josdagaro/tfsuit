@@ -3,7 +3,7 @@ FROM ubuntu:20.04
 WORKDIR /tfsuit
 
 RUN apt update -y \
-  && apt install -y jq wget
+  && apt install -y jq wget curl pcregrep
 
 # Install gsht
 RUN wget https://github.com/NekoOs/gsht.sh/releases/download/v0.1.0/gsht; \
