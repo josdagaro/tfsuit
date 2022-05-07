@@ -18,6 +18,6 @@ providers::aws::get_all_resources() {
   raw_content=$(curl -s "$raw_file_url")
   raw_content=$(echo "$raw_content" | pcregrep -oM "$match_pattern_1" | pcregrep -oM "$match_pattern_2")
   # Remove all tabulations in each line
-  resources=$(echo "$raw_content" | sed 's/\t//g')
+  resources=$(printf "%s\n" "$raw_content" | sed 's/\t//g')
   echo "$resources"
 }

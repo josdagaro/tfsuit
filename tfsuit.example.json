@@ -30,13 +30,12 @@
       "below": 1
     }
   },
-  "resources": {
-    "aws": {
-      "naming_conventions": {
-        "match_pattern": "",
-        "exact": null,
-        "ignore": null
-      }
+  "aws_resources": {
+    "naming_conventions": {
+      "match_pattern": "\"[a-z0-9_]+\"",
+      "exact": null,
+      "ignore": null,
+      "remove_double_quotes": false
     }
   },
   "modules": {

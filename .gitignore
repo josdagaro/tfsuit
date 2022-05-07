@@ -30,3 +30,4 @@ override.tf.json
 tmp.sh
 *.tf
 tfsuit
+samples/**

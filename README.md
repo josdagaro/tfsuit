@@ -68,13 +68,12 @@ jobs:
       }
     }
   },
-  "resources": {
-    "aws": {
-      "naming_conventions": {
-        "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b",
-        "exact": null,
-        "ignore": null
-      }
+  "aws_resources": {
+    "naming_conventions": {
+      "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b",
+      "exact": null,
+      "ignore": null,
+      "remove_double_quotes": true
     }
   }
 }
