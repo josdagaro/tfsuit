@@ -114,7 +114,7 @@ tfsuit() {
       # If the resource has double quotes in its name, they will be escaped...
       # E.g: "aws_acm_certificate" => \"aws_acm_certificate\"
       aws_resource_naming_convention_match_pattern_beginning=$(printf "%s\n" "$aws_resource" | sed -e "s/\"/\\\\\"/g")
-      aws_resource_summary=$(evaluator::eval --context="aws_resources" --context-full-name="resource $aws_resource" --obj-naming-convention-match-pattern-beginning='resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s+' --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")')
+      aws_resource_summary=$(evaluator::eval --context="aws_resources" --context-full-name="resource $aws_resource" --obj-naming-convention-match-pattern-beginning='resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s+' --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")')
 
       if [ "$aws_resources_summary" == '[' ]; then
         aws_resources_summary="$aws_resources_summary$aws_resource_summary"
