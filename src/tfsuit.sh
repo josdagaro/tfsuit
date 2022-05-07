@@ -45,7 +45,14 @@ tfsuit() {
 
     # Terraform variables analysis
     echo "Processing variables..."
-    variables_summary=$(evaluator::eval --context="vars" --context-full-name="variable" --obj-naming-convention-match-pattern-beginning="variable\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    
+    variables_summary=$(evaluator::eval \
+      --context="vars" \
+      --context-full-name="variable" \
+      --obj-naming-convention-match-pattern-beginning="variable\s+" \
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' \
+      --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    
     compliant_variables=$(echo "$variables_summary" | jq -r .compliant)
     not_compliant_variables=$(echo "$variables_summary" | jq -r .not_compliant)
     echo "compliant vars:"
@@ -62,7 +69,14 @@ tfsuit() {
 
     # Terraform outputs analysis
     echo "processing outputs..."
-    outputs_summary=$(evaluator::eval --context="outputs" --context-full-name="output" --obj-naming-convention-match-pattern-beginning="output\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?output\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='output\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    
+    outputs_summary=$(evaluator::eval \
+      --context="outputs" \
+      --context-full-name="output" \
+      --obj-naming-convention-match-pattern-beginning="output\s+" \
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?output\s+([a-z0-9_]+|"[a-z0-9_]+")' \
+      --obj-match-pattern-2='output\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    
     compliant_outputs=$(echo "$outputs_summary" | jq -r .compliant)
     not_compliant_outputs=$(echo "$outputs_summary" | jq -r .not_compliant)
     echo "compliant outputs:"
@@ -79,7 +93,14 @@ tfsuit() {
 
     # Terraform modules analysis
     echo "processing modules..."
-    modules_summary=$(evaluator::eval --context="modules" --context-full-name="module" --obj-naming-convention-match-pattern-beginning="module\s+" --obj-match-pattern-1='^(?!#*$)([\s]+)?module\s+([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='module\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    
+    modules_summary=$(evaluator::eval \
+      --context="modules" \
+      --context-full-name="module" \
+      --obj-naming-convention-match-pattern-beginning="module\s+" \
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?module\s+([a-z0-9_]+|"[a-z0-9_]+")' \
+      --obj-match-pattern-2='module\s+([a-z0-9_]+|"[a-z0-9_]+")')
+    
     compliant_modules=$(echo "$modules_summary" | jq -r .compliant)
     not_compliant_modules=$(echo "$modules_summary" | jq -r .not_compliant)
     echo "compliant modules:"
@@ -114,7 +135,13 @@ tfsuit() {
       # If the resource has double quotes in its name, they will be escaped...
       # E.g: "aws_acm_certificate" => \"aws_acm_certificate\"
       aws_resource_naming_convention_match_pattern_beginning=$(printf "%s\n" "$aws_resource" | sed -e "s/\"/\\\\\"/g")
-      aws_resource_summary=$(evaluator::eval --context="aws_resources" --context-full-name="resource $aws_resource" --obj-naming-convention-match-pattern-beginning='resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s+' --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")' --obj-match-pattern-2='resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")')
+      
+      aws_resource_summary=$(evaluator::eval \
+        --context="aws_resources" \
+        --context-full-name="resource $aws_resource" \
+        --obj-naming-convention-match-pattern-beginning='resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s+' \
+        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")' \
+        --obj-match-pattern-2='resource\s'"$aws_resource_naming_convention_match_pattern_beginning"'\s([a-z0-9_]+|"[a-z0-9_]+")')
 
       if [ "$aws_resources_summary" == '[' ]; then
         aws_resources_summary="$aws_resources_summary$aws_resource_summary"
