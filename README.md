@@ -34,8 +34,8 @@ jobs:
 
 ### Configuration file
 ##### Common match patterns:
+`For Terraform projects' variables:`
 ```json
-// For TF projects' variables
 {
   "vars": {
     "naming_conventions": {
@@ -47,10 +47,6 @@ jobs:
           "route53_domain"
         ]
       }
-    },
-    "line_breaks": {
-      "above": 1,
-      "below": 1
     }
   },
   "outputs": {
@@ -61,10 +57,25 @@ jobs:
         "match_pattern": null,
         "exact": []
       }
-    },
-    "line_breaks": {
-      "above": 1,
-      "below": 1
+    }
+  },
+  "modules": {
+    "naming_conventions": {
+      "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b",
+      "exact": null,
+      "ignore": {
+        "match_pattern": null,
+        "exact": []
+      }
+    }
+  },
+  "resources": {
+    "aws": {
+      "naming_conventions": {
+        "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b",
+        "exact": null,
+        "ignore": null
+      }
     }
   }
 }

@@ -31,10 +31,12 @@
     }
   },
   "resources": {
-    "naming_conventions": {
-      "match_pattern": "",
-      "exact": null,
-      "ignore": null
+    "aws": {
+      "naming_conventions": {
+        "match_pattern": "",
+        "exact": null,
+        "ignore": null
+      }
     }
   },
   "modules": {
