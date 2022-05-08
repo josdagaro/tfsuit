@@ -31,6 +31,7 @@ tfsuit() {
     local compliant_aws_resources
     local not_compliant_aws_resources
     local aws_resources_summary
+    local aws_resources_without_double_quotes_summary
     local aws_resources_message
     local aws_resources
     local remove_double_quotes_for_aws_resources
@@ -120,13 +121,14 @@ tfsuit() {
     remove_double_quotes_for_aws_resources=$(jq <"$config_json_path" -r '.aws_resources.naming_conventions.remove_double_quotes')
     echo "remove double quotes for AWS resources: $remove_double_quotes_for_aws_resources"
     aws_resources=$(providers::aws::get_all_resources)
-    aws_resources_summary='['
+    aws_resources_summary='{'
+    aws_resources_without_double_quotes_summary='{'
 
     while IFS= read -r aws_resource; do
       local aws_resource_naming_convention_match_pattern_beginning
       local aws_resource_summary
       local aws_resource_without_double_quotes
-      aws_resource_without_double_quotes=$(printf "%s\n" "$aws_resource" | sed -e "s/\"//g")
+      aws_resource_without_double_quotes=$(printf "%s\n" "$aws_resource" | sed -e "s/\\\"//g")
 
       # If the resource has double quotes in its name, they will be escaped...
       # E.g: "aws_acm_certificate" => \"aws_acm_certificate\"
@@ -135,9 +137,16 @@ tfsuit() {
       aws_resource_summary=$(evaluator::eval \
         --context="aws_resources" \
         --context-full-name="resource $aws_resource" \
-        --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning|$aws_resource_without_double_quotes"')\s' \
-        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_naming_convention_match_pattern_beginning|$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")' \
-        --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning|$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
+        --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+' \
+        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-z0-9_]+|"[a-z0-9_]+")' \
+        --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
+
+      aws_resource_without_double_quotes_summary=$(evaluator::eval \
+        --context="aws_resources" \
+        --context-full-name="resource $aws_resource_without_double_quotes" \
+        --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_without_double_quotes"')\s+' \
+        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")' \
+        --obj-match-pattern-2='resource\s+('"$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
 
       # Optional removing of double quotes on the resource name:
       # resource "aws_acm_certificate" => resource aws_acm_certificate...
@@ -147,15 +156,22 @@ tfsuit() {
         aws_resource=$(printf "%s\n" "$aws_resource" | sed -e "s/\"//g")
       fi
 
-      if [ "$aws_resources_summary" == '[' ]; then
-        aws_resources_summary="$aws_resources_summary$aws_resource_summary"
+      if [ "$aws_resources_summary" == '{' ]; then
+        aws_resources_summary="$aws_resources_summary$aws_resource: $aws_resource_summary"
       else
-        aws_resources_summary="$aws_resources_summary,$aws_resource_summary"
+        aws_resources_summary="$aws_resources_summary,$aws_resource: $aws_resource_summary"
+      fi
+
+      if [ "$aws_resources_without_double_quotes_summary" == '{' ]; then
+        aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary$aws_resource: $aws_resource_without_double_quotes_summary"
+      else
+        aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary,$aws_resource: $aws_resource_without_double_quotes_summary"
       fi
     done <<<"$aws_resources"
 
-    aws_resources_summary="$aws_resources_summary]"
-    echo "$aws_resources_summary" | jq >samples/aws_resources_summary.json
+    aws_resources_summary="$aws_resources_summary}"
+    aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
+    echo "$aws_resources_summary" | jq > samples/test.json
     # compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
     # not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
     # echo "compliant aws resources:"

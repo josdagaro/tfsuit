@@ -9,8 +9,8 @@ providers::aws::get_all_resources() {
   local match_pattern_2
   local resources
   # Using this regular expression for catching all the lines betweek the brackets:
-  # DataSourcesMap: map[string]*schema.Resource{ ... }
-  match_pattern_1='(?<=DataSourcesMap: map\[string\]\*schema\.Resource\{)\n((?:.*?|\n)*?)(?=\})'
+  # ResourcesMap: map[string]*schema.Resource{ ... }
+  match_pattern_1='(?<=ResourcesMap: map\[string\]\*schema\.Resource\{)\n((?:.*?|\n)*?)(?=\})'
   # Using this regular expression for catching all resources names...
   # which are between double quotes: "aws_acm_certificate"
   match_pattern_2='\"[a-z0-9_]+\"'

@@ -123,6 +123,8 @@ evaluator::eval() {
   if [ -z "$compliant_objects" ]; then
     compliant_objects_json_array="[]"
   else
+    # Replace multiples spaces between words by single space
+    compliant_objects=$(echo "$compliant_objects" | tr -s ' ')
     compliant_objects=$(evaluator::trim_objects "$compliant_objects" "$context_full_name")
     compliant_objects=$(evaluator::exclude_exact_ignored_objects "$compliant_objects" "$ignored_objects")
     compliant_objects_json_array=$(helper::convert_array_to_json_array "$compliant_objects")
@@ -131,6 +133,8 @@ evaluator::eval() {
   if [ -z "$not_compliant_objects" ]; then
     not_compliant_objects_json_array="[]"
   else
+    # Replace multiples spaces between words by single space
+    not_compliant_objects=$(echo "$not_compliant_objects" | tr -s ' ')
     not_compliant_objects=$(evaluator::trim_objects "$not_compliant_objects" "$context_full_name")
     not_compliant_objects=$(evaluator::exclude_exact_ignored_objects "$not_compliant_objects" "$ignored_objects")
     not_compliant_objects_json_array=$(helper::convert_array_to_json_array "$not_compliant_objects")
