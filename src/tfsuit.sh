@@ -148,14 +148,6 @@ tfsuit() {
         --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")' \
         --obj-match-pattern-2='resource\s+('"$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
 
-      # Optional removing of double quotes on the resource name:
-      # resource "aws_acm_certificate" => resource aws_acm_certificate...
-      # this is for evaluating again the compliant AWS resources...
-      # regarding we need double quotes or not
-      if [ "$remove_double_quotes_for_aws_resources" == "true" ]; then
-        aws_resource=$(printf "%s\n" "$aws_resource" | sed -e "s/\"//g")
-      fi
-
       if [ "$aws_resources_summary" == '{' ]; then
         aws_resources_summary="$aws_resources_summary$aws_resource: $aws_resource_summary"
       else
@@ -172,8 +164,19 @@ tfsuit() {
     echo "AWS resources processed"
     aws_resources_summary="$aws_resources_summary}"
     aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
+    
+    # TODO: Remember to validate if double quotes are enabled to mark the resource as complaint or not complaint
+    # Optional removing of double quotes on the resource name:
+    # resource "aws_acm_certificate" => resource aws_acm_certificate...
+    # this is for evaluating again the compliant AWS resources...
+    # regarding we need double quotes or not
+    if [ "$remove_double_quotes_for_aws_resources" == "true" ]; then
+      aws_resource=$(printf "%s\n" "$aws_resource" | sed -e "s/\"//g")
+    fi
+
     # TODO: Remove it
     echo "$aws_resources_summary" | jq > samples/test.json
+    echo "$aws_resources_without_double_quotes_summary" | jq > samples/test2.json
     # compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
     # not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
     # echo "compliant aws resources:"
