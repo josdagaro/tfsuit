@@ -16,6 +16,9 @@ providers::aws::get_all_resources() {
   match_pattern_2='\"[a-z0-9_]+\"'
   raw_file_url="https://raw.githubusercontent.com/hashicorp/terraform-provider-aws/main/internal/provider/provider.go"
   raw_content=$(curl -s "$raw_file_url")
+  # Replace multiples spaces between words by single space
+  raw_content=$(echo "$raw_content" | tr -s ' ')
+  # TODO: Solve pcregrep problem about exceeding limits...
   raw_content=$(echo "$raw_content" | pcregrep -oM "$match_pattern_1" | pcregrep -oM "$match_pattern_2")
   # Remove all tabulations in each line
   resources=$(printf "%s\n" "$raw_content" | sed 's/\t//g')
