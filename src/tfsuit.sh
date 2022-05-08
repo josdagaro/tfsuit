@@ -169,8 +169,10 @@ tfsuit() {
       fi
     done <<<"$aws_resources"
 
+    echo "AWS resources processed"
     aws_resources_summary="$aws_resources_summary}"
     aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
+    # TODO: Remove it
     echo "$aws_resources_summary" | jq > samples/test.json
     # compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
     # not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
