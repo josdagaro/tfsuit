@@ -24,6 +24,7 @@ resource "aws_acm_certificate" "foo" {
   }
 }
 
+    # TODO: This resources is being ignored, check why
     resource "aws_acm_certificate" "foo-incorrect" {
   domain_name       = "example.com"
   validation_method = "DNS"
