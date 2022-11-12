@@ -15,11 +15,23 @@ inputs:
     description: "Related documentation link to show when tfsuit fails because not compliant rules"
     required: false
     default: ""
+  github_actions:
+    description: "Whether to set GitHub Actions outputs or not"
+    required: false
+    default: "true"
 outputs:
   compliant_vars:
     description: "A JSON list of compliant vars"
   not_complaint_vars:
     description: "A JSON list of not compliant vars"
+  compliant_outputs:
+    description: "A JSON list of compliant outputs"
+  not_compliant_outputs:
+    description: "A JSON list of not compliant outputs"
+  compliant_modules:
+    description: "A JSON list of compliant modules"
+  not_compliant_modules:
+    description: "A JSON list of not compliant modules"
 runs:
   using: "docker"
   image: "Dockerfile"
@@ -28,6 +40,7 @@ runs:
     - ${{ inputs.config_json_path }}
     - ${{ inputs.fail_on_not_compliant }}
     - ${{ inputs.docs_link }}
+    - ${{ inputs.github_actions }}
 branding:
   icon: "box"
   color: "gray-dark"
