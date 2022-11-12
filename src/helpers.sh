@@ -68,3 +68,12 @@ helper::find_tf_files() {
   rm -f /tmp/tfsuit_find.sh
   echo "$result"
 }
+
+# Inputs for loader (spin)
+sp='/-\|'
+printf ' '
+
+helper::spin() {
+  printf '\b%.1s' "$sp"
+  sp=${sp#?}${sp%???}
+}

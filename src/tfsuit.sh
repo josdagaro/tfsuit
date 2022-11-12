@@ -52,8 +52,8 @@ tfsuit() {
       --context="vars" \
       --context-full-name="variable" \
       --obj-naming-convention-match-pattern-beginning="variable\s+" \
-      --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-z0-9_]+|"[a-z0-9_]+")' \
-      --obj-match-pattern-2='variable\s+([a-z0-9_]+|"[a-z0-9_]+")')
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?variable\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+      --obj-match-pattern-2='variable\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
     compliant_variables=$(echo "$variables_summary" | jq -r .compliant)
     not_compliant_variables=$(echo "$variables_summary" | jq -r .not_compliant)
@@ -76,8 +76,8 @@ tfsuit() {
       --context="outputs" \
       --context-full-name="output" \
       --obj-naming-convention-match-pattern-beginning="output\s+" \
-      --obj-match-pattern-1='^(?!#*$)([\s]+)?output\s+([a-z0-9_]+|"[a-z0-9_]+")' \
-      --obj-match-pattern-2='output\s+([a-z0-9_]+|"[a-z0-9_]+")')
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?output\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+      --obj-match-pattern-2='output\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
     compliant_outputs=$(echo "$outputs_summary" | jq -r .compliant)
     not_compliant_outputs=$(echo "$outputs_summary" | jq -r .not_compliant)
@@ -100,8 +100,8 @@ tfsuit() {
       --context="modules" \
       --context-full-name="module" \
       --obj-naming-convention-match-pattern-beginning="module\s+" \
-      --obj-match-pattern-1='^(?!#*$)([\s]+)?module\s+([a-z0-9_]+|"[a-z0-9_]+")' \
-      --obj-match-pattern-2='module\s+([a-z0-9_]+|"[a-z0-9_]+")')
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?module\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+      --obj-match-pattern-2='module\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
     compliant_modules=$(echo "$modules_summary" | jq -r .compliant)
     not_compliant_modules=$(echo "$modules_summary" | jq -r .not_compliant)
@@ -126,6 +126,7 @@ tfsuit() {
     aws_resources_without_double_quotes_summary='{'
 
     while IFS= read -r aws_resource; do
+      helper::spin
       local aws_resource_naming_convention_match_pattern_beginning
       local aws_resource_summary
       local aws_resource_without_double_quotes
@@ -139,16 +140,16 @@ tfsuit() {
         --context="aws_resources" \
         --context-full-name="resource $aws_resource" \
         --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+' \
-        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-z0-9_]+|"[a-z0-9_]+")' \
-        --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
+        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+        --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
       # TODO: run this process in parallel with the previous one for optimizing the execution time
       aws_resource_without_double_quotes_summary=$(finder::run \
         --context="aws_resources" \
         --context-full-name="resource $aws_resource_without_double_quotes" \
         --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_without_double_quotes"')\s+' \
-        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")' \
-        --obj-match-pattern-2='resource\s+('"$aws_resource_without_double_quotes"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
+        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_without_double_quotes"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+        --obj-match-pattern-2='resource\s+('"$aws_resource_without_double_quotes"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
       if [ "$aws_resources_summary" == '{' ]; then
         aws_resources_summary="$aws_resources_summary$aws_resource: $aws_resource_summary"
@@ -163,7 +164,7 @@ tfsuit() {
       fi
     done <<<"$aws_resources"
 
-    echo "AWS resources processed"
+    printf '\nAWS resources processed'
     aws_resources_summary="$aws_resources_summary}"
     aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
 

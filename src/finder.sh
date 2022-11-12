@@ -141,7 +141,7 @@ finder::run() {
   fi
 
   echo "{
-    \"compliant\": ${compliant_objects_json_array},
-    \"not_compliant\": ${not_compliant_objects_json_array}
+    \"compliant\": $compliant_objects_json_array,
+    \"not_compliant\": $not_compliant_objects_json_array
   }"
 }

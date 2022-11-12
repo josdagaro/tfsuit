@@ -39,6 +39,7 @@ resource "aws_acm_certificate" "foo" {
 
     # TODO: This resources is being ignored, check why
     # it should be matched as a not compliant object
+    # It could be for the dash "-"
 resource "aws_acm_certificate" "foo-incorrect" {
   domain_name       = "example.com"
   validation_method = "DNS"
