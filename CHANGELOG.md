@@ -15,7 +15,7 @@ Nothing
 
 ## [v0.8.0] - 04-05-2022
 ### Added
-- Comments for improving the understanding of the function `evaluator::trim_objects` and support for evaluating Terraform modules' naming conventions
+- Comments for improving the understanding of the function `finder::trim_objects` and support for evaluating Terraform modules' naming conventions
 ### Changed
 Nothing
 ### Fixed

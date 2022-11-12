@@ -9,7 +9,7 @@ tfsuit() {
     source version.sh
     source inputs.sh
     source check_deps.sh
-    source evaluator.sh
+    source finder.sh
     source github.sh
     source providers/aws.sh
 
@@ -48,7 +48,7 @@ tfsuit() {
     # Terraform variables analysis
     echo "Processing variables..."
 
-    variables_summary=$(evaluator::eval \
+    variables_summary=$(finder::run \
       --context="vars" \
       --context-full-name="variable" \
       --obj-naming-convention-match-pattern-beginning="variable\s+" \
@@ -72,7 +72,7 @@ tfsuit() {
     # Terraform outputs analysis
     echo "processing outputs..."
 
-    outputs_summary=$(evaluator::eval \
+    outputs_summary=$(finder::run \
       --context="outputs" \
       --context-full-name="output" \
       --obj-naming-convention-match-pattern-beginning="output\s+" \
@@ -96,7 +96,7 @@ tfsuit() {
     # Terraform modules analysis
     echo "processing modules..."
 
-    modules_summary=$(evaluator::eval \
+    modules_summary=$(finder::run \
       --context="modules" \
       --context-full-name="module" \
       --obj-naming-convention-match-pattern-beginning="module\s+" \
@@ -135,7 +135,7 @@ tfsuit() {
       # E.g: "aws_acm_certificate" => \"aws_acm_certificate\"
       aws_resource_naming_convention_match_pattern_beginning=$(printf "%s\n" "$aws_resource" | sed -e "s/\"/\\\\\"/g")
 
-      aws_resource_summary=$(evaluator::eval \
+      aws_resource_summary=$(finder::run \
         --context="aws_resources" \
         --context-full-name="resource $aws_resource" \
         --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+' \
@@ -143,7 +143,7 @@ tfsuit() {
         --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
 
       # TODO: run this process in parallel with the previous one for optimizing the execution time
-      aws_resource_without_double_quotes_summary=$(evaluator::eval \
+      aws_resource_without_double_quotes_summary=$(finder::run \
         --context="aws_resources" \
         --context-full-name="resource $aws_resource_without_double_quotes" \
         --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_without_double_quotes"')\s+' \
