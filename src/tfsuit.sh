@@ -10,6 +10,7 @@ tfsuit() {
     source inputs.sh
     source check_deps.sh
     source evaluator.sh
+    source github.sh
     source providers/aws.sh
 
     # Initialization of variables for Terraform variables
@@ -58,10 +59,10 @@ tfsuit() {
     not_compliant_variables=$(echo "$variables_summary" | jq -r .not_compliant)
     echo "compliant vars:"
     echo "$compliant_variables" | jq
-    echo "::set-output name=compliant_variables::$(echo "$compliant_variables" | jq -rc)"
+    github::set_output "compliant_variables" "$(echo "$compliant_variables" | jq -rc)"
     echo "not compliant vars:"
     echo "$not_compliant_variables" | jq
-    echo "::set-output name=not_compliant_variables::$(echo "$not_compliant_variables" | jq -rc)"
+    github::set_output "not_compliant_variables" "$(echo "$not_compliant_variables" | jq -rc)"
 
     if [ "${not_compliant_variables}" != "[]" ]; then
       variables_message="There are vars that doesn't complaint."
@@ -82,10 +83,10 @@ tfsuit() {
     not_compliant_outputs=$(echo "$outputs_summary" | jq -r .not_compliant)
     echo "compliant outputs:"
     echo "$compliant_outputs" | jq
-    echo "::set-output name=compliant_outputs::$(echo "$compliant_outputs" | jq -rc)"
+    github::set_output "compliant_outputs" "$(echo "$compliant_outputs" | jq -rc)"
     echo "not compliant outputs:"
     echo "$not_compliant_outputs" | jq
-    echo "::set-output name=not_compliant_outputs::$(echo "$not_compliant_outputs" | jq -rc)"
+    github::set_output "not_compliant_outputs" "$(echo "$not_compliant_outputs" | jq -rc)"
 
     if [ "${not_compliant_outputs}" != "[]" ]; then
       outputs_message="There are outputs that doesn't complaint."
@@ -106,10 +107,10 @@ tfsuit() {
     not_compliant_modules=$(echo "$modules_summary" | jq -r .not_compliant)
     echo "compliant modules:"
     echo "$compliant_modules" | jq
-    echo "::set-output name=compliant_modules::$(echo "$compliant_modules" | jq -rc)"
+    github::set_output "compliant_modules" "$(echo "$compliant_modules" | jq -rc)"
     echo "not compliant modules:"
     echo "$not_compliant_modules" | jq
-    echo "::set-output name=not_compliant_modules::$(echo "$not_compliant_modules" | jq -rc)"
+    github::set_output "not_compliant_modules" "$(echo "$not_compliant_modules" | jq -rc)"
 
     if [ "${not_compliant_modules}" != "[]" ]; then
       modules_message="There are modules that doesn't complaint."
@@ -141,6 +142,7 @@ tfsuit() {
         --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-z0-9_]+|"[a-z0-9_]+")' \
         --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-z0-9_]+|"[a-z0-9_]+")')
 
+      # TODO: run this process in parallel with the previous one for optimizing the execution time
       aws_resource_without_double_quotes_summary=$(evaluator::eval \
         --context="aws_resources" \
         --context-full-name="resource $aws_resource_without_double_quotes" \
@@ -164,7 +166,7 @@ tfsuit() {
     echo "AWS resources processed"
     aws_resources_summary="$aws_resources_summary}"
     aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
-    
+
     # TODO: Remember to validate if double quotes are enabled to mark the resource as complaint or not complaint
     # Optional removing of double quotes on the resource name:
     # resource "aws_acm_certificate" => resource aws_acm_certificate...
@@ -175,16 +177,16 @@ tfsuit() {
     fi
 
     # TODO: Remove it
-    echo "$aws_resources_summary" | jq > samples/test.json
-    echo "$aws_resources_without_double_quotes_summary" | jq > samples/test2.json
+    echo "$aws_resources_summary" | jq >samples/test.json
+    echo "$aws_resources_without_double_quotes_summary" | jq >samples/test2.json
     # compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
     # not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
     # echo "compliant aws resources:"
     # echo "$compliant_aws_resources" | jq
-    # echo "::set-output name=compliant_modules::$(echo "$compliant_aws_resources" | jq -rc)"
+    # github::set_output "compliant_modules" "$(echo "$compliant_aws_resources" | jq -rc)"
     # echo "not compliant aws resources:"
     # echo "$not_compliant_aws_resources" | jq
-    # echo "::set-output name=not_compliant_modules::$(echo "$not_compliant_aws_resources" | jq -rc)"
+    # github::set_output "not_compliant_modules" "$(echo "$not_compliant_aws_resources" | jq -rc)"
 
     # if [ "${not_compliant_aws_resources}" != "[]" ]; then
     #   aws_resources_message="There are aws resources that doesn't complaint."

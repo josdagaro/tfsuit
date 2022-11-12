@@ -49,16 +49,6 @@ resource "aws_acm_certificate" bar {
   }
 }
 
-resource aws_acm_certificate foo2 {
-  domain_name       = "testing.example.com"
-  validation_method = "EMAIL"
-
-  validation_option {
-    domain_name       = "testing.example.com"
-    validation_domain = "example.com"
-  }
-}
-
             resource "aws_acm_certificate" bar2 {
   domain_name       = "testing.example.com"
   validation_method = "EMAIL"
@@ -80,6 +70,15 @@ resource      "aws_acm_certificate" foobar3 {
   }
 }
 
+resource aws_acm_certificate foo2 {
+  domain_name       = "testing.example.com"
+  validation_method = "EMAIL"
+
+  validation_option {
+    domain_name       = "testing.example.com"
+    validation_domain = "example.com"
+  }
+}
 
 resource aws_acm_certificate "barfoo2" {
   domain_name       = "testing.example.com"

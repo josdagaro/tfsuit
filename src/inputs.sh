@@ -8,6 +8,7 @@ fail_on_not_compliant=0
 dir=
 config_json_path=
 docs_link=
+set_github_actions_outputs=0
 
 for arg in "$@"; do
   case $arg in
@@ -31,6 +32,9 @@ for arg in "$@"; do
     ;;
   -dl=* | --docs-link=*)
     docs_link="${arg#*=}"
+    ;;
+  -gh | --github-actions)
+    set_github_actions_outputs=1
     ;;
   esac
   shift
