@@ -164,7 +164,7 @@ tfsuit() {
       fi
     done <<<"$aws_resources"
 
-    printf '\nAWS resources processed'
+    printf '\nAWS resources processed\n'
     aws_resources_summary="$aws_resources_summary}"
     aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
 
@@ -177,9 +177,8 @@ tfsuit() {
       aws_resource=$(printf "%s\n" "$aws_resource" | sed -e "s/\"//g")
     fi
 
-    # TODO: Remove it
-    echo "$aws_resources_summary" | jq >samples/test.json
-    echo "$aws_resources_without_double_quotes_summary" | jq >samples/test2.json
+    helper::save_sample "aws-resources-summary.json" "$aws_resources_summary"
+    helper::save_sample "aws-resources-without-double-quotes-summary.json" "$aws_resources_without_double_quotes_summary"
     # compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
     # not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
     # echo "compliant aws resources:"

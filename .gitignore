@@ -31,3 +31,4 @@ tmp.sh
 *.tf
 tfsuit
 samples/**
+!samples/.gitkeep

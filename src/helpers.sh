@@ -77,3 +77,14 @@ helper::spin() {
   printf '\b%.1s' "$sp"
   sp=${sp#?}${sp%???}
 }
+
+helper::save_sample() {
+  local name
+  local value
+  name="$1"
+  value="$2"
+
+  if [ "$debug" == 1 ]; then
+    echo "$value" | jq >"samples/$name"
+  fi
+}
