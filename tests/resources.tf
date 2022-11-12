@@ -24,9 +24,22 @@ resource "aws_acm_certificate" "foo" {
   }
 }
 
+    resource "aws_acm_certificate" foo_incorrect {
+  domain_name       = "example.com"
+  validation_method = "DNS"
+
+  tags = {
+    Environment = "test"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
     # TODO: This resources is being ignored, check why
     # it should be matched as a not compliant object
-    resource "aws_acm_certificate" "foo-incorrect" {
+resource "aws_acm_certificate" "foo-incorrect" {
   domain_name       = "example.com"
   validation_method = "DNS"
 
