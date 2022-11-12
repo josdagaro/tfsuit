@@ -4,9 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.9.0] - 06-05-2022
+## [v0.9.0] - 12-11-2022
 ### Added
 - Added support for analysing AWS resources and checking naming conventions for them
+- Input for enabling optional GitHub Actions features `github_actions`
 ### Changed
 Nothing
 ### Fixed
