@@ -88,3 +88,43 @@ helper::save_sample() {
     echo "$value" | jq >"samples/$name"
   fi
 }
+
+helper::convert_map_to_list_of_complaint_or_not_resources() {
+  local compliant_resources
+  local not_compliant_resources
+  local resources
+  local keys
+  local found_resources
+  resources="$1"
+  compliant_resources='['
+  not_compliant_resources='['
+  keys=$(echo "$resources" | jq -r 'keys')
+  helper::save_sample "aws-resources-keys.json" "$keys"
+
+  for row in $(echo "${keys}" | jq -r '.[] | @base64'); do
+    key=$(echo "$row" | base64 --decode | jq -r '.')
+    found_resources=$(echo "$resources" | jq -r ".$key.compliant")
+    found_resources=$(helper::convert_json_array_to_array "$found_resources")
+
+    while IFS= read -r found_resource; do
+      compliant_resources="${compliant_resources}resource $key $found_resource,"
+    done <<<"$found_resources"
+
+    found_resources=$(echo "$resources" | jq -r ".$key.not_compliant")
+    found_resources=$(helper::convert_json_array_to_array "$found_resources")
+
+    while IFS= read -r found_resource; do
+      not_compliant_resources="${not_compliant_resources}resource $key $found_resource,"
+    done <<<"$found_resources"
+  done
+
+  compliant_resources=${compliant_resources::-1}
+  compliant_resources="$compliant_resources]"
+  not_compliant_resources=${not_compliant_resources::-1}
+  not_compliant_resources="$not_compliant_resources]"
+
+  echo "{
+    \"compliant\": $compliant_resources,
+    \"not_compliant\": $not_compliant_resources
+  }"
+}
