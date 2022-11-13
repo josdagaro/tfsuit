@@ -98,11 +98,11 @@ helper::convert_map_to_list_of_complaint_or_not_resources() {
   resources="$1"
   compliant_resources='['
   not_compliant_resources='['
-  keys=$(echo "$resources" | jq -r 'keys')
-  helper::save_sample "aws-resources-keys.json" "$keys"
+  keys=$(echo "$resources" | jq 'keys[]')
+  keys=$(helper::convert_json_array_to_array "$keys")
+  helper::save_sample "aws-resources-keys.txt" "$keys"
 
-  for row in $(echo "${keys}" | jq -r '.[] | @base64'); do
-    key=$(echo "$row" | base64 --decode | jq -r '.')
+  while IFS= read -r key; do
     found_resources=$(echo "$resources" | jq -r ".$key.compliant")
     found_resources=$(helper::convert_json_array_to_array "$found_resources")
 
@@ -116,7 +116,7 @@ helper::convert_map_to_list_of_complaint_or_not_resources() {
     while IFS= read -r found_resource; do
       not_compliant_resources="${not_compliant_resources}resource $key $found_resource,"
     done <<<"$found_resources"
-  done
+  done <<<"$keys"
 
   compliant_resources=${compliant_resources::-1}
   compliant_resources="$compliant_resources]"
