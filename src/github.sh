@@ -6,7 +6,7 @@ github::set_output() {
   name="$1"
   message="$2"
 
-  if [ "$set_github_actions_outputs" == 1 ]; then
+  if [ "$set_github_actions_outputs" -eq 1 ]; then
     echo "::set-output name=$name::$message"
   fi
 }

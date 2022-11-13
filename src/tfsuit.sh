@@ -143,7 +143,9 @@ tfsuit() {
         --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
         --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
-      # TODO: run this process in parallel with the previous one for optimizing the execution time
+      # TODO: run this process in parallel with the previous one for optimizing the execution time...
+      # or, using a conditional based on the value of the variable $remove_double_quotes_for_aws_resources...
+      # for performing this find or the previous one
       aws_resource_without_double_quotes_summary=$(finder::run \
         --context="aws_resources" \
         --context-full-name="resource $aws_resource_without_double_quotes" \
@@ -167,31 +169,28 @@ tfsuit() {
     printf '\nAWS resources processed\n'
     aws_resources_summary="$aws_resources_summary}"
     aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
-
-    # TODO: Remember to validate if double quotes are enabled to mark the resource as complaint or not complaint
-    # Optional removing of double quotes on the resource name:
-    # resource "aws_acm_certificate" => resource aws_acm_certificate...
-    # this is for evaluating again the compliant AWS resources...
-    # regarding we need double quotes or not
-    if [ "$remove_double_quotes_for_aws_resources" == "true" ]; then
-      aws_resource=$(printf "%s\n" "$aws_resource" | sed -e "s/\"//g")
-    fi
-
     helper::save_sample "aws-resources-summary.json" "$aws_resources_summary"
     helper::save_sample "aws-resources-without-double-quotes-summary.json" "$aws_resources_without_double_quotes_summary"
-    # compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
-    # not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
-    # echo "compliant aws resources:"
-    # echo "$compliant_aws_resources" | jq
-    # github::set_output "compliant_modules" "$(echo "$compliant_aws_resources" | jq -rc)"
-    # echo "not compliant aws resources:"
-    # echo "$not_compliant_aws_resources" | jq
-    # github::set_output "not_compliant_modules" "$(echo "$not_compliant_aws_resources" | jq -rc)"
 
-    # if [ "${not_compliant_aws_resources}" != "[]" ]; then
-    #   aws_resources_message="There are aws resources that doesn't complaint."
-    # error_exists=1
-    # fi
+    # If the variable $remove_double_quotes_for_aws_resources is equal to "true"...
+    # then the variable $aws_resources_summary is overwrited regarding the second find
+    if [ "$remove_double_quotes_for_aws_resources" == "true" ]; then
+      aws_resources_summary="$aws_resources_without_double_quotes_summary"
+    fi
+
+    compliant_aws_resources=$(providers::aws::get_found_resources_list "$aws_resources_summary" | jq -r .compliant)
+    not_compliant_aws_resources=$(providers::aws::get_found_resources_list "$aws_resources_summary" | jq -r .not_compliant)
+    echo "compliant aws resources:"
+    echo "$compliant_aws_resources" | jq
+    github::set_output "compliant_aws_resources" "$(echo "$compliant_aws_resources" | jq -rc)"
+    echo "not compliant aws resources:"
+    echo "$not_compliant_aws_resources" | jq
+    github::set_output "not_compliant_aws_resources" "$(echo "$not_compliant_aws_resources" | jq -rc)"
+
+    if [ "${not_compliant_aws_resources}" != "[]" ]; then
+      aws_resources_message="There are aws resources that doesn't complaint."
+      error_exists=1
+    fi
 
     message+="
       $variables_message

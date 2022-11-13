@@ -84,7 +84,7 @@ helper::save_sample() {
   name="$1"
   value="$2"
 
-  if [ "$debug" == 1 ]; then
+  if [ "$debug" -eq 1 ]; then
     echo "$value" | jq >"samples/$name"
   fi
 }

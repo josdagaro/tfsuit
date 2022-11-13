@@ -23,3 +23,10 @@ providers::aws::get_all_resources() {
   resources=$(printf "%s\n" "$raw_content" | sed 's/\t//g')
   echo "$resources"
 }
+
+providers::aws::get_found_resources_list() {
+  local compliant_resources
+  lcoal not_compliant_resources
+  compliant_resources='{'
+  not_compliant_resources='{'
+}
