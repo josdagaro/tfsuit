@@ -178,7 +178,9 @@ tfsuit() {
       aws_resources_summary="$aws_resources_without_double_quotes_summary"
     fi
 
+    printf '\nstructuring AWS resources...\n'
     aws_resources_summary=$(helper::convert_map_to_list_of_complaint_or_not_resources "$aws_resources_summary")
+    printf '\nAWS resources ordered\n'
     compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
     not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
     echo "compliant aws resources:"

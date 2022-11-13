@@ -96,10 +96,10 @@ helper::convert_map_to_list_of_complaint_or_not_resources() {
   local keys
   local found_resources
   resources="$1"
+
   compliant_resources='['
   not_compliant_resources='['
   keys=$(echo "$resources" | jq 'keys[]')
-  keys=$(helper::convert_json_array_to_array "$keys")
   helper::save_sample "aws-resources-keys.txt" "$keys"
 
   while IFS= read -r key; do
@@ -122,6 +122,8 @@ helper::convert_map_to_list_of_complaint_or_not_resources() {
   compliant_resources="$compliant_resources]"
   not_compliant_resources=${not_compliant_resources::-1}
   not_compliant_resources="$not_compliant_resources]"
+  helper::save_sample "aws-compliant-resources.json" "$compliant_resources"
+  helper::save_sample "aws-not-compliant-resources.json" "$not_compliant_resources"
 
   echo "{
     \"compliant\": $compliant_resources,
