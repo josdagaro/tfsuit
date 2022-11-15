@@ -168,6 +168,7 @@ tfsuit() {
 
     printf '\nAWS resources processed\n'
     aws_resources_summary="$aws_resources_summary}"
+    aws_resources_summary=$(echo "$aws_resources_summary" | jq)
     aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
     helper::save_sample "aws-resources-summary.json" "$aws_resources_summary"
     helper::save_sample "aws-resources-without-double-quotes-summary.json" "$aws_resources_without_double_quotes_summary"

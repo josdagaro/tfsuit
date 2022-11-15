@@ -104,23 +104,38 @@ helper::convert_map_to_list_of_complaint_or_not_resources() {
   helper::save_sample "aws-resources-keys.txt" "$keys"
 
   while IFS= read -r key; do
+    key=$(printf "%s\n" "$key" | sed -e "s/\"/\\\\\"/g")
     found_compliant_resources=$(echo "$resources" | jq ".$key.compliant")
     # TODO: The error could be here
-    found_compliant_resources=$(helper::convert_json_array_to_array "$found_compliant_resources")
-    echo "$found_compliant_resources" | jq >"samples/test/$key.txt"
+    #found_compliant_resources=$(helper::convert_json_array_to_array "$found_compliant_resources")
+    #echo "$found_compliant_resources" | jq >"samples/test/$key.txt"
 
-    while IFS= read -r found_compliant_resource; do
-      compliant_resources="${compliant_resources}resource $key $found_compliant_resource,"
-    done <<<"$found_compliant_resources"
+    for row in $(echo "$found_compliant_resources" | jq -r '.[] | @base64'); do
+      row=$(echo "$row" | base64 --decode)
+      row=$(printf "%s\n" "$row" | sed -e "s/\"/\\\\\"/g")
+      compliant_resources="${compliant_resources}\"resource $key $row\","
+    done
+
+    #if [ -n "$found_compliant_resources" ] && [ "$found_compliant_resources" != "" ] && [ "$found_compliant_resources" != "[]" ]; then
+    #  while IFS= read -r found_compliant_resource; do
+    #    compliant_resources="${compliant_resources}resource $key $found_compliant_resource,"
+    #  done <<<"$found_compliant_resources"
+    #fi
 
     found_not_compliant_resources=$(echo "$resources" | jq ".$key.not_compliant")
     # TODO: The error could be here
-    found_not_compliant_resources=$(helper::convert_json_array_to_array "$found_not_compliant_resources")
-    echo "$found_not_compliant_resources" | jq >"samples/test/$key-not.txt"
+    #found_not_compliant_resources=$(helper::convert_json_array_to_array "$found_not_compliant_resources")
+    #echo "$found_not_compliant_resources" | jq >"samples/test/$key-not.txt"
 
-    while IFS= read -r found_not_compliant_resource; do
-      not_compliant_resources="${not_compliant_resources}resource $key $found_not_compliant_resource,"
-    done <<<"$found_not_compliant_resources"
+    for row in $(echo "$found_not_compliant_resources" | jq -r '.[] | @base64'); do
+      row=$(echo "$row" | base64 --decode)
+      row=$(printf "%s\n" "$row" | sed -e "s/\"/\\\\\"/g")
+      not_compliant_resources="${not_compliant_resources}\"resource $key $row\","
+    done
+
+    #while IFS= read -r found_not_compliant_resource; do
+    #  not_compliant_resources="${not_compliant_resources}resource $key $found_not_compliant_resource,"
+    #done <<<"$found_not_compliant_resources"
   done <<<"$keys"
 
   compliant_resources=${compliant_resources::-1}
