@@ -180,6 +180,11 @@ tfsuit() {
     fi
 
     printf '\nstructuring AWS resources...\n'
+    # TODO:
+    # Move this method to a new file into the folder src/providers/main.sh
+    # Then remember to order the same list of resources for the ones without double quotes saved into the variable: $aws_resources_without_double_quotes_summary
+    # Then combine both the variable $aws_resources_summary and $aws_resources_without_double_quotes_summary for getting just one list
+    # Based on the variable $remove_double_quotes_for_aws_resources you'll have to assign the content of a variable into the property not_compliant of the other one...
     aws_resources_summary=$(helper::convert_map_to_list_of_complaint_or_not_resources "$aws_resources_summary")
     printf '\nAWS resources ordered\n'
     compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
