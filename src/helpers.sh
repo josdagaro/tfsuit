@@ -97,3 +97,23 @@ function helper::save_sample() {
     echo "$value" | jq >"samples/$name"
   fi
 }
+
+function helper::get_json_elements_joined_by_comma() {
+  local document="$1"
+  local document_property="$2"
+  local resources=""
+
+  for row in $(echo "$document" | jq -r "$document_property | @base64"); do
+    resource_element=$(echo "$row" | base64 --decode)
+    # Escape double quotes
+    resource_element=$(echo "$resource_element" | sed 's/"/\\"/g')
+
+    if [ "$resources" == "" ]; then
+      resources="\"$resource_element"\"
+    else
+      resources="$resources,\"$resource_element"\"
+    fi
+  done
+
+  echo "$resources"
+}

@@ -115,10 +115,10 @@ tfsuit() {
       error_exists=1
     fi
 
-    # Terraform aws resources analysis
-    echo "processing AWS resources..."
+    # Terraform resources analysis
+    echo "processing resources..."
     remove_double_quotes_for_resources=$(jq <"$config_json_path" -r '.resources.naming_conventions.remove_double_quotes')
-    echo "remove double quotes for AWS resources: $remove_double_quotes_for_resources"
+    echo "remove double quotes for resources: $remove_double_quotes_for_resources"
 
     resources_summary=$(finder::run \
       --context="resources" \
@@ -134,27 +134,27 @@ tfsuit() {
       --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+([a-zA-Z0-9_-]+)\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
       --obj-match-pattern-2='resource\s+([a-zA-Z0-9_-]+)\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
-    echo "$resources_summary" | jq
-    echo "$resource_without_double_quotes_summary" | jq
-    exit 0
-
     if [ "$remove_double_quotes_for_resources" == "true" ]; then
-      resources_summary="$resources_without_double_quotes_summary"
+      compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])]"
+      not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])"
+      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])"
+      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])]"
     else
-      local resources_summary
+      compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])]"
+      not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])"
+      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])"
+      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])]"
     fi
 
-    compliant_resources=$(echo "$resources_summary" | jq -r .compliant)
-    not_compliant_resources=$(echo "$resources_summary" | jq -r .not_compliant)
-    echo "compliant aws resources:"
+    echo "compliant resources:"
     echo "$compliant_resources" | jq
     github::set_output "compliant_resources" "$(echo "$compliant_resources" | jq -rc)"
-    echo "not compliant aws resources:"
+    echo "not compliant resources:"
     echo "$not_compliant_resources" | jq
     github::set_output "not_compliant_resources" "$(echo "$not_compliant_resources" | jq -rc)"
 
     if [ "${not_compliant_resources}" != "[]" ]; then
-      resources_message="There are aws resources that doesn't complaint."
+      resources_message="There are resources that doesn't complaint."
       error_exists=1
     fi
 
