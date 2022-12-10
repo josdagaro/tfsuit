@@ -33,7 +33,6 @@ tfsuit() {
     local aws_resources_summary
     local aws_resources_without_double_quotes_summary
     local aws_resources_message
-    local aws_resources
     local remove_double_quotes_for_aws_resources
     local error_exists
     local message
@@ -121,23 +120,19 @@ tfsuit() {
     remove_double_quotes_for_aws_resources=$(jq <"$config_json_path" -r '.resources.naming_conventions.remove_double_quotes')
     echo "remove double quotes for AWS resources: $remove_double_quotes_for_aws_resources"
 
-    local aws_resource_match_pattern_beginning='"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"'
-    local aws_resource_match_pattern_beginning_without_double_quotes='([a-zA-Z0-9_-]+)'
-
     aws_resources_summary=$(finder::run \
       --context="resources" \
       --context-full-name="resource" \
-      --obj-naming-convention-match-pattern-beginning='resource\s+'"$aws_resource_match_pattern_beginning"'\s+' \
-      --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+'"$aws_resource_match_pattern_beginning"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
-      --obj-match-pattern-2='resource\s+'"$aws_resource_match_pattern_beginning"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
+      --obj-naming-convention-match-pattern-beginning='resource\s+"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"\s+' \
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+      --obj-match-pattern-2='resource\s+"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
-    # TODO: Verify why is passing as compliant the ones with double quotes at the beginning
     aws_resource_without_double_quotes_summary=$(finder::run \
       --context="resources" \
       --context-full-name="resource" \
-      --obj-naming-convention-match-pattern-beginning='resource\s+'"$aws_resource_match_pattern_beginning_without_double_quotes"'\s+' \
-      --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+'"$aws_resource_match_pattern_beginning_without_double_quotes"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
-      --obj-match-pattern-2='resource\s+'"$aws_resource_match_pattern_beginning_without_double_quotes"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
+      --obj-naming-convention-match-pattern-beginning='resource\s+([a-zA-Z0-9_-]+)\s+' \
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+([a-zA-Z0-9_-]+)\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+      --obj-match-pattern-2='resource\s+([a-zA-Z0-9_-]+)\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
     echo "$aws_resources_summary" | jq
     echo "$aws_resource_without_double_quotes_summary" | jq
@@ -145,6 +140,8 @@ tfsuit() {
 
     if [ "$remove_double_quotes_for_aws_resources" == "true" ]; then
       aws_resources_summary="$aws_resources_without_double_quotes_summary"
+    else
+      echo 'do something...'
     fi
 
     compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)

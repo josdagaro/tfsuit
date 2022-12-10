@@ -69,21 +69,6 @@ helper::find_tf_files() {
   echo "$result"
 }
 
-# Inputs for loader (spin)
-sp='/-\|'
-printf ' '
-
-function helper::spin_by_interation() {
-  printf '\b%.1s' "$sp"
-  sp=${sp#?}${sp%???}
-}
-
-function helper::shutdown_spin() {
-  tput cnorm
-}
-
-trap helper::shutdown_spin EXIT
-
 function helper::spin() {
   local pid=$1
   local spin='-\|/'
