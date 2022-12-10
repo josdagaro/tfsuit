@@ -30,7 +30,7 @@
       "below": 1
     }
   },
-  "aws_resources": {
+  "resources": {
     "naming_conventions": {
       "match_pattern": "\"[a-z0-9_]+\"",
       "exact": null,

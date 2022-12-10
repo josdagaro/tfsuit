@@ -11,8 +11,6 @@ tfsuit() {
     source check_deps.sh
     source finder.sh
     source github.sh
-    source providers/providers.sh
-    source providers/aws.sh
 
     # Initialization of variables for Terraform variables
     local compliant_variables
@@ -120,74 +118,30 @@ tfsuit() {
 
     # Terraform aws resources analysis
     echo "processing AWS resources..."
-    remove_double_quotes_for_aws_resources=$(jq <"$config_json_path" -r '.aws_resources.naming_conventions.remove_double_quotes')
+    remove_double_quotes_for_aws_resources=$(jq <"$config_json_path" -r '.resources.naming_conventions.remove_double_quotes')
     echo "remove double quotes for AWS resources: $remove_double_quotes_for_aws_resources"
-    aws_resources=$(providers::aws::get_all_resources)
-    aws_resources_summary='{'
-    aws_resources_without_double_quotes_summary='{'
 
-    while IFS= read -r aws_resource; do
-      helper::spin_by_interation
-      local aws_resource_naming_convention_match_pattern_beginning
-      local aws_resource_summary
-      local aws_resource_without_double_quotes
-      aws_resource_without_double_quotes=$(printf "%s\n" "$aws_resource" | sed -e "s/\\\"//g")
+    local aws_resource_match_pattern_beginning='"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"'
+    local aws_resource_match_pattern_beginning_without_double_quotes='([a-zA-Z0-9_-]+)'
 
-      # If the resource has double quotes in its name, they will be escaped...
-      # E.g: "aws_acm_certificate" => \"aws_acm_certificate\"
-      aws_resource_naming_convention_match_pattern_beginning=$(printf "%s\n" "$aws_resource" | sed -e "s/\"/\\\\\"/g")
+    aws_resources_summary=$(finder::run \
+      --context="resources" \
+      --context-full-name="resource" \
+      --obj-naming-convention-match-pattern-beginning='resource\s+'"$aws_resource_match_pattern_beginning"'\s+' \
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+'"$aws_resource_match_pattern_beginning"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+      --obj-match-pattern-2='resource\s+'"$aws_resource_match_pattern_beginning"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
-      aws_resource_summary=$(finder::run \
-        --context="aws_resources" \
-        --context-full-name="resource $aws_resource" \
-        --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+' \
-        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
-        --obj-match-pattern-2='resource\s+('"$aws_resource_naming_convention_match_pattern_beginning"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
+    # TODO: Verify why is passing as compliant the ones with double quotes at the beginning
+    aws_resource_without_double_quotes_summary=$(finder::run \
+      --context="resources" \
+      --context-full-name="resource" \
+      --obj-naming-convention-match-pattern-beginning='resource\s+'"$aws_resource_match_pattern_beginning_without_double_quotes"'\s+' \
+      --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+'"$aws_resource_match_pattern_beginning_without_double_quotes"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
+      --obj-match-pattern-2='resource\s+'"$aws_resource_match_pattern_beginning_without_double_quotes"'\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
-      # TODO: run this process in parallel with the previous one for optimizing the execution time...
-      # or, using a conditional based on the value of the variable $remove_double_quotes_for_aws_resources...
-      # for performing this find or the previous one
-      aws_resource_without_double_quotes_summary=$(finder::run \
-        --context="aws_resources" \
-        --context-full-name="resource $aws_resource_without_double_quotes" \
-        --obj-naming-convention-match-pattern-beginning='resource\s+('"$aws_resource_without_double_quotes"')\s+' \
-        --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+('"$aws_resource_without_double_quotes"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
-        --obj-match-pattern-2='resource\s+('"$aws_resource_without_double_quotes"')\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
-
-      if [ "$aws_resources_summary" == '{' ]; then
-        aws_resources_summary="$aws_resources_summary$aws_resource: $aws_resource_summary"
-      else
-        aws_resources_summary="$aws_resources_summary,$aws_resource: $aws_resource_summary"
-      fi
-
-      if [ "$aws_resources_without_double_quotes_summary" == '{' ]; then
-        aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary$aws_resource: $aws_resource_without_double_quotes_summary"
-      else
-        aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary,$aws_resource: $aws_resource_without_double_quotes_summary"
-      fi
-    done <<<"$aws_resources"
-
-    printf '\nAWS resources processed\n'
-    aws_resources_summary="$aws_resources_summary}"
-    aws_resources_summary=$(echo "$aws_resources_summary" | jq)
-    aws_resources_without_double_quotes_summary="$aws_resources_without_double_quotes_summary}"
-    helper::save_sample "aws-resources-summary.json" "$aws_resources_summary"
-    helper::save_sample "aws-resources-without-double-quotes-summary.json" "$aws_resources_without_double_quotes_summary"
-    printf '\nstructuring AWS resources...\n'
-    # TODO:
-    # Move this method to a new file into the folder src/providers/main.sh
-    # Then remember to order the same list of resources for the ones without double quotes saved into the variable: $aws_resources_without_double_quotes_summary
-    # Then combine both the variable $aws_resources_summary and $aws_resources_without_double_quotes_summary for getting just one list
-    # Based on the variable $remove_double_quotes_for_aws_resources you'll have to assign the content of a variable into the property not_compliant of the other one...
-    providers::convert_map_to_list_of_complaint_or_not_resources "$aws_resources_summary" >"/tmp/aws-resources-summary.json" &
-    local aws_resources_summary_pid="${!}"
-    providers::convert_map_to_list_of_complaint_or_not_resources "$aws_resources_without_double_quotes_summary" >"/tmp/aws-resources-without-double-quotes-summary.json" &
-    local aws_resources_without_double_quotes_summary_pid="${!}"
-    helper::spin "$aws_resources_without_double_quotes_summary_pid"
-    helper::spin "$aws_resources_summary_pid"
-    aws_resources_summary=$(cat /tmp/aws-resources-summary.json | jq)
-    aws_resources_without_double_quotes_summary=$(cat /tmp/aws-resources-without-double-quotes-summary.json | jq)
-    printf '\nAWS resources ordered\n'
+    echo "$aws_resources_summary" | jq
+    echo "$aws_resource_without_double_quotes_summary" | jq
+    exit 0
 
     if [ "$remove_double_quotes_for_aws_resources" == "true" ]; then
       aws_resources_summary="$aws_resources_without_double_quotes_summary"
