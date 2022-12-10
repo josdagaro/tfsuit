@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [v0.9.0] - 12-11-2022
 ### Added
-- Added support for analysing AWS resources and checking naming conventions for them
+- Added support for analysing resources and checking naming conventions for them
 - Input for enabling optional GitHub Actions features `github_actions`
 - Input for enabling optional debug mode
 ### Changed

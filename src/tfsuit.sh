@@ -27,19 +27,19 @@ tfsuit() {
     local not_compliant_modules
     local modules_summary
     local modules_message
-    # Initialization of variables for Terraform AWS resources
-    local compliant_aws_resources
-    local not_compliant_aws_resources
-    local aws_resources_summary
-    local aws_resources_without_double_quotes_summary
-    local aws_resources_message
-    local remove_double_quotes_for_aws_resources
+    # Initialization of variables for Terraform resources
+    local compliant_resources
+    local not_compliant_resources
+    local resources_summary
+    local resources_without_double_quotes_summary
+    local resources_message
+    local remove_double_quotes_for_resources
     local error_exists
     local message
     variables_message=""
     outputs_message=""
     modules_message=""
-    aws_resources_message=""
+    resources_message=""
     message="[ERROR]"
     error_exists=0
 
@@ -117,44 +117,44 @@ tfsuit() {
 
     # Terraform aws resources analysis
     echo "processing AWS resources..."
-    remove_double_quotes_for_aws_resources=$(jq <"$config_json_path" -r '.resources.naming_conventions.remove_double_quotes')
-    echo "remove double quotes for AWS resources: $remove_double_quotes_for_aws_resources"
+    remove_double_quotes_for_resources=$(jq <"$config_json_path" -r '.resources.naming_conventions.remove_double_quotes')
+    echo "remove double quotes for AWS resources: $remove_double_quotes_for_resources"
 
-    aws_resources_summary=$(finder::run \
+    resources_summary=$(finder::run \
       --context="resources" \
       --context-full-name="resource" \
       --obj-naming-convention-match-pattern-beginning='resource\s+"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"\s+' \
       --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
       --obj-match-pattern-2='resource\s+"([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")"\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
-    aws_resource_without_double_quotes_summary=$(finder::run \
+    resource_without_double_quotes_summary=$(finder::run \
       --context="resources" \
       --context-full-name="resource" \
       --obj-naming-convention-match-pattern-beginning='resource\s+([a-zA-Z0-9_-]+)\s+' \
       --obj-match-pattern-1='^(?!#*$)([\s]+)?resource\s+([a-zA-Z0-9_-]+)\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")' \
       --obj-match-pattern-2='resource\s+([a-zA-Z0-9_-]+)\s+([a-zA-Z0-9_-]+|"[a-zA-Z0-9_-]+")')
 
-    echo "$aws_resources_summary" | jq
-    echo "$aws_resource_without_double_quotes_summary" | jq
+    echo "$resources_summary" | jq
+    echo "$resource_without_double_quotes_summary" | jq
     exit 0
 
-    if [ "$remove_double_quotes_for_aws_resources" == "true" ]; then
-      aws_resources_summary="$aws_resources_without_double_quotes_summary"
+    if [ "$remove_double_quotes_for_resources" == "true" ]; then
+      resources_summary="$resources_without_double_quotes_summary"
     else
-      echo 'do something...'
+      local resources_summary
     fi
 
-    compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .compliant)
-    not_compliant_aws_resources=$(echo "$aws_resources_summary" | jq -r .not_compliant)
+    compliant_resources=$(echo "$resources_summary" | jq -r .compliant)
+    not_compliant_resources=$(echo "$resources_summary" | jq -r .not_compliant)
     echo "compliant aws resources:"
-    echo "$compliant_aws_resources" | jq
-    github::set_output "compliant_aws_resources" "$(echo "$compliant_aws_resources" | jq -rc)"
+    echo "$compliant_resources" | jq
+    github::set_output "compliant_resources" "$(echo "$compliant_resources" | jq -rc)"
     echo "not compliant aws resources:"
-    echo "$not_compliant_aws_resources" | jq
-    github::set_output "not_compliant_aws_resources" "$(echo "$not_compliant_aws_resources" | jq -rc)"
+    echo "$not_compliant_resources" | jq
+    github::set_output "not_compliant_resources" "$(echo "$not_compliant_resources" | jq -rc)"
 
-    if [ "${not_compliant_aws_resources}" != "[]" ]; then
-      aws_resources_message="There are aws resources that doesn't complaint."
+    if [ "${not_compliant_resources}" != "[]" ]; then
+      resources_message="There are aws resources that doesn't complaint."
       error_exists=1
     fi
 
@@ -162,7 +162,7 @@ tfsuit() {
       $variables_message
       $outputs_message
       $modules_message
-      $aws_resources_message
+      $resources_message
     "
 
     if [ "$error_exists" -eq 1 ] && [ "$fail_on_not_compliant" -eq 1 ]; then

@@ -68,7 +68,7 @@ jobs:
       }
     }
   },
-  "aws_resources": {
+  "resources": {
     "naming_conventions": {
       "match_pattern": "[a-z0-9_]+_(virginia|ohio|california|oregon)\\b",
       "exact": null,
