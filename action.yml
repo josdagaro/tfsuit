@@ -36,10 +36,10 @@ outputs:
     description: "A JSON list of compliant modules"
   not_compliant_modules:
     description: "A JSON list of not compliant modules"
-  compliant_aws_resources:
-    description: "A JSON list of compliant aws resources"
-  not_compliant_aws_resources:
-    description: "A JSON list of not compliant aws resources"
+  compliant_resources:
+    description: "A JSON list of compliant resources"
+  not_compliant_resources:
+    description: "A JSON list of not compliant resources"
 runs:
   using: "docker"
   image: "Dockerfile"
