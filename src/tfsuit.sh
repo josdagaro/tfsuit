@@ -31,7 +31,6 @@ tfsuit() {
     local compliant_resources
     local not_compliant_resources
     local resources_summary
-    local resources_without_double_quotes_summary
     local resources_message
     local remove_double_quotes_for_resources
     local error_exists
