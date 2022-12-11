@@ -68,3 +68,52 @@ helper::find_tf_files() {
   rm -f /tmp/tfsuit_find.sh
   echo "$result"
 }
+
+function helper::spin() {
+  local pid=$1
+  local spin='-\|/'
+  local result=
+
+  local i=0
+  tput civis
+
+  while kill -0 "$pid" 2>/dev/null; do
+    local i=$(((i + 1) % ${#spin}))
+    printf "%s" "${spin:$i:1}"
+    echo -en "\033[1D"
+    sleep .2
+  done
+
+  tput cnorm
+  wait "$pid"
+  return $?
+}
+
+function helper::save_sample() {
+  local name="$1"
+  local value="$2"
+
+  if [ "$debug" -eq 1 ]; then
+    echo "$value" | jq >"samples/$name"
+  fi
+}
+
+function helper::get_json_elements_joined_by_comma() {
+  local document="$1"
+  local document_property="$2"
+  local resources=""
+
+  for row in $(echo "$document" | jq -r "$document_property | @base64"); do
+    resource_element=$(echo "$row" | base64 --decode)
+    # Escape double quotes
+    resource_element=$(echo "$resource_element" | sed 's/"/\\"/g')
+
+    if [ "$resources" == "" ]; then
+      resources="\"$resource_element"\"
+    else
+      resources="$resources,\"$resource_element"\"
+    fi
+  done
+
+  echo "$resources"
+}

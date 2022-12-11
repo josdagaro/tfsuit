@@ -1,6 +1,6 @@
 #!/bin/bash
 
-evaluator::get_objects() {
+finder::get_objects() {
   local objects
   local tf_files
   local code
@@ -21,7 +21,7 @@ evaluator::get_objects() {
 # In this function the type of object is removed for getting just the name of the object...
 # so, regarding that, if the object type is "variable" and the name is "foobar"...
 # the word "variable" will be removed leaving just "foobar"
-evaluator::trim_objects() {
+finder::trim_objects() {
   local objects
   local trimed_objects
   local object_type_identifier_length
@@ -37,7 +37,7 @@ evaluator::trim_objects() {
   echo "$trimed_objects"
 }
 
-evaluator::exclude_exact_ignored_objects() {
+finder::exclude_exact_ignored_objects() {
   local objects
   local ignored_objects
   mapfile -t objects <<<"$1"
@@ -60,7 +60,7 @@ evaluator::exclude_exact_ignored_objects() {
   done
 }
 
-evaluator::eval() {
+finder::run() {
   local context
   local context_full_name
   local objects_naming_convention_match_pattern_beginning
@@ -103,7 +103,7 @@ evaluator::eval() {
 
   if [ "$objects_naming_convention_match_pattern" != "null" ] && [ -n "$objects_naming_convention_match_pattern" ]; then
     objects_naming_convention_match_pattern="${objects_naming_convention_match_pattern_beginning}${objects_naming_convention_match_pattern}"
-    objects=$(evaluator::get_objects "$objects_match_pattern_1")
+    objects=$(finder::get_objects "$objects_match_pattern_1")
     compliant_objects=$(echo "$objects" | grep -oE "$objects_naming_convention_match_pattern")
     not_compliant_objects=$(echo "$objects" | grep -vE "$objects_naming_convention_match_pattern" | grep -oP "$objects_match_pattern_1" | grep -oE "$objects_match_pattern_2")
   else
@@ -123,21 +123,25 @@ evaluator::eval() {
   if [ -z "$compliant_objects" ]; then
     compliant_objects_json_array="[]"
   else
-    compliant_objects=$(evaluator::trim_objects "$compliant_objects" "$context_full_name")
-    compliant_objects=$(evaluator::exclude_exact_ignored_objects "$compliant_objects" "$ignored_objects")
+    # Replace multiples spaces between words by single space
+    compliant_objects=$(echo "$compliant_objects" | tr -s ' ')
+    compliant_objects=$(finder::trim_objects "$compliant_objects" "$context_full_name")
+    compliant_objects=$(finder::exclude_exact_ignored_objects "$compliant_objects" "$ignored_objects")
     compliant_objects_json_array=$(helper::convert_array_to_json_array "$compliant_objects")
   fi
 
   if [ -z "$not_compliant_objects" ]; then
     not_compliant_objects_json_array="[]"
   else
-    not_compliant_objects=$(evaluator::trim_objects "$not_compliant_objects" "$context_full_name")
-    not_compliant_objects=$(evaluator::exclude_exact_ignored_objects "$not_compliant_objects" "$ignored_objects")
+    # Replace multiples spaces between words by single space
+    not_compliant_objects=$(echo "$not_compliant_objects" | tr -s ' ')
+    not_compliant_objects=$(finder::trim_objects "$not_compliant_objects" "$context_full_name")
+    not_compliant_objects=$(finder::exclude_exact_ignored_objects "$not_compliant_objects" "$ignored_objects")
     not_compliant_objects_json_array=$(helper::convert_array_to_json_array "$not_compliant_objects")
   fi
 
   echo "{
-    \"compliant\": ${compliant_objects_json_array},
-    \"not_compliant\": ${not_compliant_objects_json_array}
+    \"compliant\": $compliant_objects_json_array,
+    \"not_compliant\": $not_compliant_objects_json_array
   }"
 }
