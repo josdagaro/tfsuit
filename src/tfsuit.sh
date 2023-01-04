@@ -136,13 +136,33 @@ tfsuit() {
     if [ "$remove_double_quotes_for_resources" == "true" ]; then
       compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])]"
       not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])"
-      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])"
-      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])]"
+
+      if [ "$not_compliant_resources" != "[" ]; then
+        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])"
+      else
+        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])"
+      fi
+
+      if [ "$not_compliant_resources" != "[" ]; then
+        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])]"
+      else
+        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])]"
+      fi
     else
       compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])]"
       not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])"
-      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])"
-      not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])]"
+
+      if [ "$not_compliant_resources" != "[" ]; then
+        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])"
+      else
+        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])"
+      fi
+
+      if [ "$not_compliant_resources" != "[" ]; then
+        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])]"
+      else
+        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])]"
+      fi
     fi
 
     echo "compliant resources:"
