@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [v0.9.1] - 04-01-2023
+## [v0.9.1, v0.9.2] - 27-06-2023
 ### Added
 Nothing
 ### Changed
-Nothing
+- Way to set GitHub Actions outputs
 ### Fixed
 - Error at reading empty lists about compliant or not compliant resources
 

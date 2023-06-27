@@ -18,6 +18,8 @@ jobs:
           wget https://github.com/NekoOs/gsht.sh/releases/download/v0.1.0/gsht
           sudo cp gsht /usr/local/bin/gsht
           sudo chmod a+x /usr/local/bin/gsht
+      - name: Install pcregrep
+        run: sudo apt-get update -y && sudo apt-get install -y pcregrep
       - name: Transpile
         run: |
           gsht --input src/tfsuit.sh --output tfsuit

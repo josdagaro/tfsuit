@@ -17,9 +17,9 @@ jobs:
           wget https://github.com/NekoOs/gsht.sh/releases/download/v0.1.0/gsht
           sudo mv gsht /usr/local/bin/gsht
           sudo chmod a+x /usr/local/bin/gsht
-      - name: transpile
+      - name: Transpile
         run: |
-          gsht --input src/tfsuit.sh  --output tfsuit
+          gsht --input src/tfsuit.sh --output tfsuit
           zip --junk-paths tfsuit tfsuit
       - name: Tag
         if: github.event.pull_request.merged
