@@ -53,6 +53,7 @@ jobs:
           asset_name: tfsuit
           asset_content_type: application/zip
       - name: Update Major And Minor Version
+        if: github.event.pull_request.merged
         id: major-minor-versions
         run: |
           MAJOR=${VERSION%%.*}
@@ -69,6 +70,8 @@ jobs:
           VERSION: ${{ steps.tag.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Or Update Release Major
+        if: github.event.pull_request.merged
+        id: major-release
         uses: joutvhu/create-release@v1
         with:
           tag_name: ${{ steps.major-minor-versions.outputs.major-version }}
@@ -79,6 +82,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Or Update Release Minor
+        if: github.event.pull_request.merged
+        id: minor-release
         uses: joutvhu/create-release@v1
         with:
           tag_name: ${{ steps.major-minor-versions.outputs.minor-version }}
@@ -88,3 +93,25 @@ jobs:
           on_release_exists: "update"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Major Release Asset
+        if: github.event.pull_request.merged
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.major-release.outputs.upload_url }}
+          asset_path: ./tfsuit.zip
+          asset_name: tfsuit
+          asset_content_type: application/zip
+      - name: Upload Minor Release Asset
+        if: github.event.pull_request.merged
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.minor-release.outputs.upload_url }}
+          asset_path: ./tfsuit.zip
+          asset_name: tfsuit
+          asset_content_type: application/zip
