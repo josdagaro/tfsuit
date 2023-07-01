@@ -1,6 +1,3 @@
-# Copyright (c) 2021 Vincent A. Cicirello
-# MIT License
-
 name: Update Major Release Tag
 
 on:
