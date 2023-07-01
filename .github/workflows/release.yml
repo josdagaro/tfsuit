@@ -56,6 +56,8 @@ jobs:
         id: major-version
         run: |
           MAJOR=${VERSION%%.*}
+          git config --global user.email ""
+          git config --global user.name "github-action"
           git tag -fa "$MAJOR" -m "Update major version tag $MAJOR"
           git push origin "$MAJOR" --force
           echo "version=v$MAJOR" >> "$GITHUB_OUTPUT"
