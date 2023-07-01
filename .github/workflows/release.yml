@@ -52,24 +52,37 @@ jobs:
           asset_path: ./tfsuit.zip
           asset_name: tfsuit
           asset_content_type: application/zip
-      - name: Update Major Version
-        id: major-version
+      - name: Update Major And Minor Version
+        id: major-minor-versions
         run: |
           MAJOR=${VERSION%%.*}
+          MINOR=${VERSION%.*}
           git config --global user.email ""
           git config --global user.name "github-action"
           git tag -fa "$MAJOR" -m "Update major version tag $MAJOR"
+          git tag -fa "$MINOR" -m "Update minor version tag $MINOR"
           git push origin "$MAJOR" --force
-          echo "version=v$MAJOR" >> "$GITHUB_OUTPUT"
+          git push origin "$MINOR" --force
+          echo "major-version=$MAJOR" >> "$GITHUB_OUTPUT"
+          echo "minor-version=$MINOR" >> "$GITHUB_OUTPUT"
         env:
           VERSION: ${{ steps.tag.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create Or Update Release
-        id: gh-release
+      - name: Create Or Update Release Major
         uses: joutvhu/create-release@v1
         with:
-          tag_name: ${{ steps.major-version.outputs.version }}
-          name: Release ${{ steps.major-version.outputs.version }}
+          tag_name: ${{ steps.major-minor-versions.outputs.major-version }}
+          name: ${{ steps.major-minor-versions.outputs.major-version }}
+          draft: false
+          prerelease: false
+          on_release_exists: "update"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Or Update Release Minor
+        uses: joutvhu/create-release@v1
+        with:
+          tag_name: ${{ steps.major-minor-versions.outputs.minor-version }}
+          name: ${{ steps.major-minor-versions.outputs.minor-version }}
           draft: false
           prerelease: false
           on_release_exists: "update"
