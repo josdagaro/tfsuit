@@ -1,5 +1,5 @@
 #!/bin/bash
 
 version() {
-  echo "tfsuit v0.9.4"
+  echo "tfsuit v0.9.5"
 }
