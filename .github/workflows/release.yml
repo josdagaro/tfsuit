@@ -52,3 +52,24 @@ jobs:
           asset_path: ./tfsuit.zip
           asset_name: tfsuit
           asset_content_type: application/zip
+      - name: Update Major Version
+        id: major-version
+        run: |
+          MAJOR=${VERSION%%.*}
+          git tag -fa "$MAJOR" -m "Update major version tag $MAJOR"
+          git push origin "$MAJOR" --force
+          echo "version=v$MAJOR" >> "$GITHUB_OUTPUT"
+        env:
+          VERSION: ${{ steps.tag.outputs.tag }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Or Update Release
+        id: gh-release
+        uses: joutvhu/create-release@v1
+        with:
+          tag_name: ${{ steps.major-version.outputs.version }}
+          name: Release ${{ steps.major-version.outputs.version }}
+          draft: false
+          prerelease: false
+          on_release_exists: "update"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
