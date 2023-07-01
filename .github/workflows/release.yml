@@ -50,9 +50,5 @@ jobs:
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
           asset_path: ./tfsuit.zip
-          asset_name: tfsuit
+          asset_name: tfsuit-linux-amd64
           asset_content_type: application/zip
-      - name: Update Major And Minor Versions
-        uses: haya14busa/action-update-semver@v1
-        with:
-          major_version_tag_only: false
