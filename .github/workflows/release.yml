@@ -41,6 +41,7 @@ jobs:
           release_name: ${{ steps.tag.outputs.tag }}
           draft: false
           prerelease: false
+          body: For full changelog details, see [CHANGELOG](https://github.com/josdagaro/tfsuit/blob/main/CHANGELOG.md)
       - name: Upload Release Asset
         if: github.event.pull_request.merged
         id: upload-release-asset
@@ -81,6 +82,7 @@ jobs:
           on_release_exists: "update"
           remove_assets: true
           generate_release_notes: true
+          body: For full changelog details, see [CHANGELOG](https://github.com/josdagaro/tfsuit/blob/main/CHANGELOG.md)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Or Update Release Minor
@@ -95,6 +97,7 @@ jobs:
           on_release_exists: "update"
           remove_assets: true
           generate_release_notes: true
+          body: For full changelog details, see [CHANGELOG](https://github.com/josdagaro/tfsuit/blob/main/CHANGELOG.md)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Major Release Asset
@@ -138,5 +141,5 @@ jobs:
         git config --local user.name github-actions
         git config --local user.email github-actions@github.com
         git add CHANGELOG.md
-        git commit -m "Update changelog with ${GITHUB_REF#refs/*/}"
+        git commit -m "Auto generate changelog"
         git push
