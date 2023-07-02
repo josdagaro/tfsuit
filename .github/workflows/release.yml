@@ -117,3 +117,22 @@ jobs:
           asset_path: ./tfsuit.zip
           asset_name: tfsuit
           asset_content_type: application/zip
+
+  generate-changelog:
+    runs-on: ubuntu-latest
+    environment: slcd
+    needs:
+      - tag
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        persist-credentials: true
+    - name: "✏️ Generate Release changelog"
+      uses: heinrichreimer/github-changelog-generator-action@v2.3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }} 
+    - name: Commit & Push changes
+      uses: actions-js/push@master
+      with:
+        github_token: ${{ secrets.CHANGELOG_TOKEN }}
