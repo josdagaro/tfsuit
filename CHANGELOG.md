@@ -2,7 +2,19 @@
 
 ## [v0](https://github.com/josdagaro/tfsuit/tree/v0) (2023-07-02)
 
-[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9...v0)
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.10...v0)
+
+## [v0.10](https://github.com/josdagaro/tfsuit/tree/v0.10) (2023-07-02)
+
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.10.0...v0.10)
+
+## [v0.10.0](https://github.com/josdagaro/tfsuit/tree/v0.10.0) (2023-07-02)
+
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9...v0.10.0)
+
+**Merged pull requests:**
+
+- Add body to releases [\#51](https://github.com/josdagaro/tfsuit/pull/51) ([josdagaro](https://github.com/josdagaro))
 
 ## [v0.9](https://github.com/josdagaro/tfsuit/tree/v0.9) (2023-07-02)
 
