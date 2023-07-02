@@ -18,7 +18,12 @@ jobs:
       uses: heinrichreimer/github-changelog-generator-action@v2.3
       with:
         token: ${{ secrets.GITHUB_TOKEN }} 
+    - name: Extract branch name
+      shell: bash
+      run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+      id: extract_branch
     - name: Commit & Push changes
       uses: actions-js/push@master
       with:
-        github_token: ${{ secrets.CHANGELOG_TOKEN }}
+        github_token: ${{ secrets.GITHUB_TOKEN }} #${{ secrets.CHANGELOG_TOKEN }}
+        branch: ${{ steps.extract_branch.outputs.branch }}
