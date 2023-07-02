@@ -6,7 +6,39 @@
 
 ## [v0.9](https://github.com/josdagaro/tfsuit/tree/v0.9) (2023-07-02)
 
-[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9.12...v0.9)
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9.16...v0.9)
+
+## [v0.9.16](https://github.com/josdagaro/tfsuit/tree/v0.9.16) (2023-07-02)
+
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9.15...v0.9.16)
+
+**Merged pull requests:**
+
+- Bugfix/resources [\#50](https://github.com/josdagaro/tfsuit/pull/50) ([josdagaro](https://github.com/josdagaro))
+
+## [v0.9.15](https://github.com/josdagaro/tfsuit/tree/v0.9.15) (2023-07-02)
+
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9.14...v0.9.15)
+
+**Merged pull requests:**
+
+- Try another version to check auto changelog [\#49](https://github.com/josdagaro/tfsuit/pull/49) ([josdagaro](https://github.com/josdagaro))
+
+## [v0.9.14](https://github.com/josdagaro/tfsuit/tree/v0.9.14) (2023-07-02)
+
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9.13...v0.9.14)
+
+**Merged pull requests:**
+
+- Try another version to check auto changelog [\#48](https://github.com/josdagaro/tfsuit/pull/48) ([josdagaro](https://github.com/josdagaro))
+
+## [v0.9.13](https://github.com/josdagaro/tfsuit/tree/v0.9.13) (2023-07-02)
+
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.9.12...v0.9.13)
+
+**Merged pull requests:**
+
+- feat: Try to auto generate changelog [\#47](https://github.com/josdagaro/tfsuit/pull/47) ([josdagaro](https://github.com/josdagaro))
 
 ## [v0.9.12](https://github.com/josdagaro/tfsuit/tree/v0.9.12) (2023-07-02)
 
