@@ -35,18 +35,3 @@ jobs:
           severity: "warning" # options: error, warning, info, style
           additional_files: "tfsuit"
           format: tty
-
-  generate-changelog:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: "✏️ Generate release changelog"
-      uses: heinrichreimer/github-changelog-generator-action@v2.3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }} 
-    - name: See CHANGELOG.md
-      run: |
-        cat CHANGELOG.md
-        git status
