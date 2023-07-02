@@ -79,6 +79,8 @@ jobs:
           draft: false
           prerelease: false
           on_release_exists: "update"
+          remove_assets: true
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Or Update Release Minor
@@ -91,6 +93,8 @@ jobs:
           draft: false
           prerelease: false
           on_release_exists: "update"
+          remove_assets: true
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload Major Release Asset
