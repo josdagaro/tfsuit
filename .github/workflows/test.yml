@@ -35,3 +35,20 @@ jobs:
           severity: "warning" # options: error, warning, info, style
           additional_files: "tfsuit"
           format: tty
+
+  generate-changelog:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - uses: BobAnkh/auto-generate-changelog@v1.2.5
+      with:
+        ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PATH: CHANGELOG.md
+        COMMIT_MESSAGE: 'docs(CHANGELOG): update release notes'
+        TYPE: 'feat:Feature,fix:Bug Fixes,docs:Documentation,refactor:Refactor,perf:Performance Improvements'
+    - name: See CHANGELOG.md
+      run: |
+        echo CHANGELOG.md
+        git status
