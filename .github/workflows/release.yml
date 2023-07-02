@@ -128,15 +128,15 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: true
-    - name: "✏️ Generate Release changelog"
+        token: ${{ secrets.CHANGELOG_TOKEN }}
+    - name: "✏️ Generate Release Changelog"
       uses: heinrichreimer/github-changelog-generator-action@v2.3
       with:
         token: ${{ secrets.GITHUB_TOKEN }} 
-    - name: Commit & Push changes
-      uses: actions-js/push@master
-      with:
-        github_token: ${{ secrets.CHANGELOG_TOKEN }}
-        author_email: josdagaro@gmail.com
-        author_name: josdagaro
-        message: Auto changelog generation
-        force: true
+    - name: 🚀 Push Changelog
+      run: |
+        git config --local user.name github-actions
+        git config --local user.email github-actions@github.com
+        git add CHANGELOG.md
+        git commit -m "Update changelog with ${GITHUB_REF#refs/*/}"
+        git push
