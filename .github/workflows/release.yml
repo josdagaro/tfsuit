@@ -136,3 +136,7 @@ jobs:
       uses: actions-js/push@master
       with:
         github_token: ${{ secrets.CHANGELOG_TOKEN }}
+        author_email: josdagaro@gmail.com
+        author_name: josdagaro
+        message: Auto changelog generation
+        force: true
