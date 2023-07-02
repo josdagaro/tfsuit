@@ -50,5 +50,5 @@ jobs:
         TYPE: 'feat:Feature,fix:Bug Fixes,docs:Documentation,refactor:Refactor,perf:Performance Improvements'
     - name: See CHANGELOG.md
       run: |
-        echo CHANGELOG.md
+        cat CHANGELOG.md
         git status
