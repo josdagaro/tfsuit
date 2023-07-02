@@ -2,6 +2,7 @@
 
 ## About
 Terraform customizable tool for defining your standards, styles, and naming conventions
+By the moment is only supported to work as a GitHub action (linux).
 
 ## Install
 ```sh
