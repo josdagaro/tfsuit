@@ -6,7 +6,15 @@
 
 ## [v0.10](https://github.com/josdagaro/tfsuit/tree/v0.10) (2023-07-15)
 
-[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.10.1...v0.10)
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.10.2...v0.10)
+
+## [v0.10.2](https://github.com/josdagaro/tfsuit/tree/v0.10.2) (2023-07-15)
+
+[Full Changelog](https://github.com/josdagaro/tfsuit/compare/v0.10.1...v0.10.2)
+
+**Merged pull requests:**
+
+- Fix error at concatenating not compliant resources [\#53](https://github.com/josdagaro/tfsuit/pull/53) ([josdagaro](https://github.com/josdagaro))
 
 ## [v0.10.1](https://github.com/josdagaro/tfsuit/tree/v0.10.1) (2023-07-15)
 
