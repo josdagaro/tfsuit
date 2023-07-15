@@ -169,7 +169,8 @@ tfsuit() {
     echo "$compliant_resources" | jq
     github::set_output "compliant_resources" "$(echo "$compliant_resources" | jq -rc)"
     echo "not compliant resources:"
-    echo "$not_compliant_resources" | jq
+    # If it fails, just print the content as raw
+    echo "$not_compliant_resources" | jq || echo "$not_compliant_resources"
     github::set_output "not_compliant_resources" "$(echo "$not_compliant_resources" | jq -rc)"
 
     if [ "${not_compliant_resources}" != "[]" ]; then
