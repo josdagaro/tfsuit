@@ -136,35 +136,50 @@ tfsuit() {
     if [ "$remove_double_quotes_for_resources" == "true" ]; then
       compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])]"
       not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])"
+      resources_summary_compliant=$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])
 
-      if [ "$not_compliant_resources" != "[" ]; then
-        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])"
-      else
-        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])"
+      if [ "$resources_summary_compliant" != "" ]; then
+        if [ "$not_compliant_resources" != "[" ]; then
+          not_compliant_resources="$not_compliant_resources,$resources_summary_compliant"
+        else
+          not_compliant_resources="[$resources_summary_compliant"
+        fi
       fi
 
-      if [ "$not_compliant_resources" != "[" ]; then
-        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])]"
-      else
-        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])]"
+      resources_summary_not_compliant=$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])
+
+      if [ "$resources_summary_not_compliant" != "" ]; then
+        if [ "$not_compliant_resources" != "[" ]; then
+          not_compliant_resources="$not_compliant_resources,$resources_summary_not_compliant"
+        else
+          not_compliant_resources="[$resources_summary_not_compliant"
+        fi
       fi
     else
       compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .compliant[])]"
       not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resources_summary" .not_compliant[])"
+      resource_without_double_quotes_summary_compliant=$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])
 
-      if [ "$not_compliant_resources" != "[" ]; then
-        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])"
-      else
-        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .compliant[])"
+      if [ "$resource_without_double_quotes_summary_compliant" != "" ]; then
+        if [ "$not_compliant_resources" != "[" ]; then
+          not_compliant_resources="$not_compliant_resources,$resource_without_double_quotes_summary_compliant"
+        else
+          not_compliant_resources="[$resource_without_double_quotes_summary_compliant"
+        fi
       fi
 
-      if [ "$not_compliant_resources" != "[" ]; then
-        not_compliant_resources="$not_compliant_resources,$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])]"
-      else
-        not_compliant_resources="[$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])]"
+      resource_without_double_quotes_summary_not_compliant=$(helper::get_json_elements_joined_by_comma "$resource_without_double_quotes_summary" .not_compliant[])
+
+      if [ "$resource_without_double_quotes_summary_not_compliant" != "" ]; then
+        if [ "$not_compliant_resources" != "[" ]; then
+          not_compliant_resources="$not_compliant_resources,$resource_without_double_quotes_summary_not_compliant"
+        else
+          not_compliant_resources="[$resource_without_double_quotes_summary_not_compliant"
+        fi
       fi
     fi
 
+    not_compliant_resources="$not_compliant_resources]"
     echo "compliant resources:"
     echo "$compliant_resources" | jq
     github::set_output "compliant_resources" "$(echo "$compliant_resources" | jq -rc)"
