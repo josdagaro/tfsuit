@@ -199,6 +199,49 @@ tfsuit() {
       $modules_message
       $resources_message
     "
+    echo "validating required variables for resources and modules..."
+
+    required_vars_json=$(jq -r '.required_variables_per_object' "$config_json_path")
+
+    # Validar recursos
+    jq -r '.resources // {} | to_entries[] | "\(.key)=\(.value | @csv)"' <<< "$required_vars_json" | while IFS='=' read -r resource_type required_vars_csv; do
+      required_vars=($(echo "$required_vars_csv" | tr -d '"' | tr ',' ' '))
+      echo "Validating $resource_type for required variables: ${required_vars[*]}"
+      
+      for file in $(find . -name "*.tf"); do
+        if grep -q "resource\s\+\"$resource_type\"" "$file"; then
+          for var in "${required_vars[@]}"; do
+            if ! grep -q "$var\s*=" "$file"; then
+              echo "[ERROR] Resource '$resource_type' in file '$file' is missing required variable '$var'"
+              github::set_output "missing_resource_variables" "[ERROR] Resource '$resource_type' in file '$file' is missing required variable '$var'"
+              error_exists=1
+            fi
+          done
+        fi
+      done
+    done
+
+    # Validar módulos
+    jq -r '.modules // {} | to_entries[] | "\(.key)=\(.value | @csv)"' <<< "$required_vars_json" | while IFS='=' read -r module_pattern required_vars_csv; do
+      required_vars=($(echo "$required_vars_csv" | tr -d '"' | tr ',' ' '))
+      echo "Validating modules matching '$module_pattern' for required variables: ${required_vars[*]}"
+      
+      for file in $(find . -name "*.tf"); do
+        module_names=$(grep -oP 'module\s+"[^"]+"' "$file" | cut -d'"' -f2)
+        for mod in $module_names; do
+          if [[ "$mod" =~ $module_pattern ]]; then
+            for var in "${required_vars[@]}"; do
+              if ! grep -q "$var\s*=" "$file"; then
+                echo "[ERROR] Module '$mod' in file '$file' is missing required variable '$var'"
+                github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing required variable '$var'"
+                error_exists=1
+              fi
+            done
+          fi
+        done
+      done
+    done
+
 
     if [ "$error_exists" -eq 1 ] && [ "$fail_on_not_compliant" -eq 1 ]; then
       if [ -n "$docs_link" ]; then
