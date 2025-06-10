@@ -261,11 +261,14 @@ tfsuit() {
 
             for var in "${required_vars[@]}"; do
               pattern="var.${var}"
+              echo "Ejecuta un for"
               if ! [[ "$block" =~ $pattern ]]; then
+                echo "entra al if de falla"
                 echo "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
                 github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
                 error_exists=1
               fi
+              echo "sale if de falla"
             done
           fi
         done
