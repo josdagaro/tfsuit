@@ -252,16 +252,19 @@ tfsuit() {
       echo "Validating modules matching '$module_pattern' for required variable references: ${required_vars[*]}"
       
       for file in $(find . -name "*.tf"); do
+      echo "primer for"
         module_blocks=$(awk '/module\s+"/{flag=1} /}/{flag=0} flag' "$file")
         module_names=$(grep -oP 'module\s+"[^"]+"' <<< "$module_blocks" | cut -d'"' -f2)
 
         for mod in $module_names; do
+          echo "segundo for"
           if [[ "$mod" =~ $module_pattern ]]; then
+            echo "valida modulo"
             block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" "$file")
 
             for var in "${required_vars[@]}"; do
               pattern="var.${var}"
-              echo "Ejecuta un for"
+              echo "tercer for"
               if ! [[ "$block" =~ $pattern ]]; then
                 echo "entra al if de falla"
                 echo "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
