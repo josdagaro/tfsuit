@@ -222,18 +222,49 @@ tfsuit() {
     done
 
     # Validar módulos
-    jq -r '.modules // {} | to_entries[] | "\(.key)=\(.value | @csv)"' <<< "$required_vars_json" | while IFS='=' read -r module_pattern required_vars_csv; do
-      required_vars=($(echo "$required_vars_csv" | tr -d '"' | tr ',' ' '))
-      echo "Validating modules matching '$module_pattern' for required variables: ${required_vars[*]}"
+    declare -A required_simple_variables
+    declare -A required_complex_variables
+
+    while IFS='=' read -r module_pattern required_vars_csv; do
+      required_simple_variables["$module_pattern"]=$(echo "$required_vars_csv" | tr -d '"' | tr ',' ' ')
+    done < <(
+      jq -r '
+        .modules
+        | to_entries[]
+        | select(.value | type == "array" and (.[0] | type == "string"))
+        | "\(.key)=\(.value | @csv)"
+      ' <<< "$required_vars_json"
+    )
+
+    while IFS='=' read -r module_pattern nested_json; do
+      required_complex_variables["$module_pattern"]="$nested_json"
+    done < <(
+      jq -r '
+        .modules
+        | to_entries[]
+        | select(.value | type == "array" and (.[0] | type == "object"))
+        | "\(.key)=\(.value | @json)"
+      ' <<< "$required_vars_json"
+    )
+
+    for module_pattern in "${!required_simple_variables[@]}"; do
+      required_vars=(${required_simple_variables[$module_pattern]})
+      
+      echo "Validating modules matching '$module_pattern' for required variable references: ${required_vars[*]}"
       
       for file in $(find . -name "*.tf"); do
-        module_names=$(grep -oP 'module\s+"[^"]+"' "$file" | cut -d'"' -f2)
+        module_blocks=$(awk '/module\s+"/{flag=1} /}/{flag=0} flag' "$file")
+        module_names=$(grep -oP 'module\s+"[^"]+"' <<< "$module_blocks" | cut -d'"' -f2)
+
         for mod in $module_names; do
           if [[ "$mod" =~ $module_pattern ]]; then
+            block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" "$file")
+
             for var in "${required_vars[@]}"; do
-              if ! grep -q "$var\s*=" "$file"; then
-                echo "[ERROR] Module '$mod' in file '$file' is missing required variable '$var'"
-                github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing required variable '$var'"
+              # Validar coincidencia exacta con grep -E y límites de palabra
+              if ! grep -E -q "\bvar\.${var}\b" <<< "$block"; then
+                echo "[ERROR] Module '$mod' in file '$file' is missing reference to 'var.${var}'"
+                github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing reference to 'var.${var}'"
                 error_exists=1
               fi
             done
@@ -242,6 +273,42 @@ tfsuit() {
       done
     done
 
+    for module_pattern in "${!required_complex_variables[@]}"; do
+      nested_json="${required_complex_variables[$module_pattern]}"
+      echo "Validating modules matching '$module_pattern' for required complex variable references: $nested_json"
+
+      for file in $(find . -name "*.tf"); do
+        module_blocks=$(awk '/module\s+"/{flag=1} /}/{flag=0} flag' "$file")
+        module_names=$(grep -oP 'module\s+"[^"]+"' <<< "$module_blocks" | cut -d'"' -f2)
+
+        for mod in $module_names; do
+          if [[ "$mod" =~ $module_pattern ]]; then
+            block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" "$file")
+
+            jq -c '.[]' <<< "$nested_json" | while read -r complex_entry; do
+              jq -r 'to_entries[] | "\(.key)=\(.value[])"' <<< "$complex_entry" | while IFS='=' read -r outer_attr varname; do
+                outer_attr_actual=$(echo "$block" | grep -oP '^\s*\K\w+(?=\s*=\s*\[)')
+                varnames_actual=$(echo "$block" | grep -oP 'var\.\w+' | sed 's/var\.//' | sort -u)
+
+                if ! [[ "$outer_attr" == "$outer_attr_actual" ]]; then
+                  echo "[ERROR] Module '$mod' in file '$file' is missing '$outer_attr'"
+                  github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing '$outer_attr'"
+                  error_exists=1
+                fi
+
+                varname=$(echo "$varname" | tr -d '\r' | xargs)
+
+                if ! echo "$varnames_actual" | grep -Fqx "$varname"; then
+                  echo "[ERROR] Variable '$outer_attr' of the module '$mod' is missing '$varname'"
+                  github::set_output "missing_module_variables" "[ERROR] Variable '$outer_attr' of the module '$mod' is missing '$varname'"
+                  error_exists=1
+                fi
+              done
+            done
+          fi
+        done
+      done
+    done
 
     if [ "$error_exists" -eq 1 ] && [ "$fail_on_not_compliant" -eq 1 ]; then
       if [ -n "$docs_link" ]; then
