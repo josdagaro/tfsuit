@@ -251,6 +251,8 @@ tfsuit() {
       
       echo "Validating modules matching '$module_pattern' for required variable references: ${required_vars[*]}"
       
+      echo "Archivos .tf encontrados:"
+      find . -name "*.tf"
       for file in $(find . -name "*.tf"); do
       echo "primer for"
         module_blocks=$(awk '/module\s+"/{flag=1} /}/{flag=0} flag' "$file")
