@@ -251,13 +251,11 @@ tfsuit() {
       
       echo "Validating modules matching '$module_pattern' for required variable references: ${required_vars[*]}"
       
-      echo "Archivos .tf encontrados:"
-      find . -name "*.tf"
       for file in $(find . -name "*.tf"); do
-      echo "primer for"
         module_blocks=$(awk '/module\s+"/{flag=1} /}/{flag=0} flag' "$file")
         module_names=$(grep -oP 'module\s+"[^"]+"' <<< "$module_blocks" | cut -d'"' -f2)
-
+        echo "$module_blocks"
+        echo "$module_names"
         for mod in $module_names; do
           echo "segundo for"
           if [[ "$mod" =~ $module_pattern ]]; then
