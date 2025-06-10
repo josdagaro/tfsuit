@@ -231,9 +231,8 @@ tfsuit() {
       jq -r '
         .modules
         | to_entries[]
-        | select(.value | type == "array" and (.[0] | type == "string"))
-        | "\(.key)=\(.value | @csv)"
-      ' <<< "$required_vars_json"
+        | "\(.key)=\(.value | map(select(type == "string")) | @csv)"
+        ' <<< "$required_vars_json"
     )
 
     while IFS='=' read -r module_pattern nested_json; do
@@ -242,9 +241,9 @@ tfsuit() {
       jq -r '
         .modules
         | to_entries[]
-        | select(.value | type == "array" and (.[0] | type == "object"))
-        | "\(.key)=\(.value | @json)"
-      ' <<< "$required_vars_json"
+        | select(.value | any(type == "object"))
+        | "\(.key)=\(.value | map(select(type == "object")) | @json)"
+        ' <<< "$required_vars_json"
     )
 
     for module_pattern in "${!required_simple_variables[@]}"; do
@@ -263,8 +262,8 @@ tfsuit() {
             for var in "${required_vars[@]}"; do
               # Validar coincidencia exacta con grep -E y límites de palabra
               if ! grep -E -q "\bvar\.${var}\b" <<< "$block"; then
-                echo "[ERROR] Module '$mod' in file '$file' is missing reference to 'var.${var}'"
-                github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing reference to 'var.${var}'"
+                echo "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
+                github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
                 error_exists=1
               fi
             done
