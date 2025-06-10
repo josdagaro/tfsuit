@@ -260,8 +260,8 @@ tfsuit() {
             block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" "$file")
 
             for var in "${required_vars[@]}"; do
-              # Validar coincidencia exacta con grep -E y límites de palabra
-              if ! grep -E -q "\bvar\.${var}\b" <<< "$block"; then
+              pattern="var.${var}"
+              if ! [[ "$block" =~ $pattern ]]; then
                 echo "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
                 github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
                 error_exists=1
@@ -289,7 +289,7 @@ tfsuit() {
                 outer_attr_actual=$(echo "$block" | grep -oP '^\s*\K\w+(?=\s*=\s*\[)')
                 varnames_actual=$(echo "$block" | grep -oP 'var\.\w+' | sed 's/var\.//' | sort -u)
 
-                if ! [[ "$outer_attr" == "$outer_attr_actual" ]]; then
+                if ! [[ "$outer_attr" =~ $outer_attr_actual ]]; then
                   echo "[ERROR] Module '$mod' in file '$file' is missing '$outer_attr'"
                   github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing '$outer_attr'"
                   error_exists=1
@@ -297,7 +297,7 @@ tfsuit() {
 
                 varname=$(echo "$varname" | tr -d '\r' | xargs)
 
-                if ! echo "$varnames_actual" | grep -Fqx "$varname"; then
+                if ! echo "$varnames_actual" | grep -Eq "$varname"; then
                   echo "[ERROR] Variable '$outer_attr' of the module '$mod' is missing '$varname'"
                   github::set_output "missing_module_variables" "[ERROR] Variable '$outer_attr' of the module '$mod' is missing '$varname'"
                   error_exists=1
