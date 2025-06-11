@@ -245,24 +245,37 @@ tfsuit() {
         | "\(.key)=\(.value | map(select(type == "object")) | @json)"
         ' <<< "$required_vars_json"
     )
-
     for module_pattern in "${!required_simple_variables[@]}"; do
       required_vars=(${required_simple_variables[$module_pattern]})
-      
       echo "Validating modules matching '$module_pattern' for required variable references: ${required_vars[*]}"
-      
-      for file in $(find . -name "*.tf"); do
-        module_blocks=$(awk '/module\s+"/{flag=1} /}/{flag=0} flag' "$file")
-        module_names=$(grep -oP 'module\s+"[^"]+"' "$file" | cut -d'"' -f2)
+
+      find . -name "*.tf" | while read -r file; do
+        filtered=$(grep -v '^[[:space:]]*#' "$file")
+        module_names=$(grep -oP 'module\s+"[^"]+"' <<<"$filtered" | cut -d'"' -f2)
+
         for mod in $module_names; do
           if [[ "$mod" =~ $module_pattern ]]; then
-            block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" "$file")
+            # bloque completo, sin comentarios
+            block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" <<<"$filtered")
+
+            # bloque "plano": eliminamos todo entre [ ... ] (listas/objetos anidados)
+            block_plain=$(sed -E '/=\s*\[/,/\]/d' <<<"$block")
 
             for var in "${required_vars[@]}"; do
-              pattern="var.${var}"
-              if ! [[ "$block" =~ $pattern ]]; then
-                echo "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
-                github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing reference to '${var}'"
+              # construye pattern y grep_opts (igual que antes)
+              if [[ "$var" =~ ^[[:alnum:]_]+$ ]]; then
+                pattern='(^|[^[:alnum:]_])var\.'"$var"'($|[^[:alnum:]_])'
+                grep_opts=(-E)
+              else
+                pattern='var\.'"$var"
+                grep_opts=(-P)
+              fi
+
+              # *buscamos ahora en block_plain* para evitar coincidencias en sub-bloques
+              if ! grep -q "${grep_opts[@]}" "$pattern" <<<"$block_plain"; then
+                echo "[ERROR] Module '$mod' in file '$file' is missing reference to '$var'"
+                github::set_output "missing_module_variables" \
+                  "[ERROR] Module '$mod' in file '$file' is missing reference to '$var'"
                 error_exists=1
               fi
             done
@@ -275,32 +288,59 @@ tfsuit() {
       nested_json="${required_complex_variables[$module_pattern]}"
       echo "Validating modules matching '$module_pattern' for required complex variable references: $nested_json"
 
-      for file in $(find . -name "*.tf"); do
-        module_blocks=$(awk '/module\s+"/{flag=1} /}/{flag=0} flag' "$file")
-        module_names=$(grep -oP 'module\s+"[^"]+"' "$file" | cut -d'"' -f2)
+      find . -name "*.tf" | while read -r file; do
+        # 1) Quitamos comentarios y buscamos módulos
+        filtered=$(grep -v '^[[:space:]]*#' "$file")
+        module_names=$(grep -oP 'module\s+"[^"]+"' <<<"$filtered" | cut -d'"' -f2)
 
         for mod in $module_names; do
           if [[ "$mod" =~ $module_pattern ]]; then
-            block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" "$file")
+            # 2) Extraemos el bloque completo del módulo, sin comentarios
+            block=$(awk "/module[[:space:]]+\"$mod\"[[:space:]]*{/,/^}/" <<<"$filtered")
 
+            # === Aquí empieza la sección que cambias ===
             jq -c '.[]' <<< "$nested_json" | while read -r complex_entry; do
-              jq -r 'to_entries[] | "\(.key)=\(.value[])"' <<< "$complex_entry" | while IFS='=' read -r outer_attr varname; do
-                outer_attr_actual=$(echo "$block" | grep -oP '^\s*\K\w+(?=\s*=\s*\[)')
-                varnames_actual=$(echo "$block" | grep -oP 'var\.\w+' | sed 's/var\.//' | sort -u)
+              # Para cada par { outer_attr: [ var1, var2, ... ] }
+              jq -r 'to_entries[] | "\(.key)=\(.value[])"' <<< "$complex_entry" \
+                | while IFS='=' read -r outer_attr varname; do
 
-                if ! [[ "$outer_attr" =~ $outer_attr_actual ]]; then
-                  echo "[ERROR] Module '$mod' in file '$file' is missing '$outer_attr'"
-                  github::set_output "missing_module_variables" "[ERROR] Module '$mod' in file '$file' is missing '$outer_attr'"
+                # ---- NUEVO: Extraemos SOLO el sub-bloque de outer_attr
+                attr_block=$(awk "/^[[:space:]]*$outer_attr[[:space:]]*=/,/]/" <<<"$block")
+
+                # 1) ¿Existe ese atributo?
+                if ! grep -qP "^[[:space:]]*$outer_attr[[:space:]]*=" <<<"$attr_block"; then
+                  echo "[ERROR] Module '$mod' in '$file' is missing attribute '$outer_attr'"
+                  github::set_output "missing_module_variables" \
+                    "[ERROR] Module '$mod' in '$file' is missing attribute '$outer_attr'"
                   error_exists=1
+                  continue
                 fi
 
+                # 2) Sólo las vars dentro de ese sub-bloque
+                varnames_actual=$(grep -oP 'var\.\w+' <<<"$attr_block" | sed 's/^var\.//' | sort -u)
+
+                # 3) Normalizamos varname
                 varname=$(echo "$varname" | tr -d '\r' | xargs)
 
-                if ! echo "$varnames_actual" | grep -Eq "$varname"; then
-                  echo "[ERROR] Variable '$outer_attr' of the module '$mod' is missing '$varname'"
-                  github::set_output "missing_module_variables" "[ERROR] Variable '$outer_attr' of the module '$mod' is missing '$varname'"
-                  error_exists=1
+                # 4) Comparamos literal vs regex
+                if [[ "$varname" =~ ^[[:alnum:]_]+$ ]]; then
+                  # literal exacto
+                  if ! grep -xFq "$varname" <<<"$varnames_actual"; then
+                    echo "[ERROR] Variable '$outer_attr' of module '$mod' is missing '$varname'"
+                    github::set_output "missing_module_variables" \
+                      "[ERROR] Variable '$outer_attr' of module '$mod' is missing '$varname'"
+                    error_exists=1
+                  fi
+                else
+                  # varname como regex
+                  if ! grep -Eq "$varname" <<<"$varnames_actual"; then
+                    echo "[ERROR] Variable '$outer_attr' of module '$mod' is missing regex '$varname'"
+                    github::set_output "missing_module_variables" \
+                      "[ERROR] Variable '$outer_attr' of module '$mod' is missing regex '$varname'"
+                    error_exists=1
+                  fi
                 fi
+
               done
             done
           fi
