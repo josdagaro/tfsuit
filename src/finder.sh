@@ -38,24 +38,35 @@ finder::trim_objects() {
 }
 
 finder::exclude_exact_ignored_objects() {
-  local objects
-  local ignored_objects
-  mapfile -t objects <<<"$1"
+  local objects ignored_objects object ign clean_obj clean_ign
+
+  mapfile -t objects         <<<"$1"
   mapfile -t ignored_objects <<<"$2"
 
   for object in "${objects[@]}"; do
-    is_ignored=0
+    # espacios a los lados
+    clean_obj="${object#"${object%%[![:space:]]*}"}"
+    clean_obj="${clean_obj%"${clean_obj##*[![:space:]]}"}"
 
-    for ignored_object in "${ignored_objects[@]}"; do
-      object=$(echo "$object" | sed -e 's/^[[:space:]]*//')
-      
-      if [ "$object" == "$ignored_object" ]; then
+    clean_obj="${clean_obj//\\}" # quita '\'
+    clean_obj="${clean_obj%$'\r'}" # quita CR al final
+    clean_obj="${clean_obj#\"}" # leading "
+    clean_obj="${clean_obj%\"}" # trailing "
+
+    local is_ignored=0
+    for ign in "${ignored_objects[@]}"; do
+      clean_ign="$ign"
+      clean_ign="${clean_ign%$'\r'}" # quita CR
+      clean_ign="${clean_ign#\"}"
+      clean_ign="${clean_ign%\"}"
+      if [ "$clean_obj" = "$clean_ign" ]; then
         is_ignored=1
+        break
       fi
     done
 
-    if [ "$is_ignored" != 1 ]; then
-      echo "$object"
+    if [ $is_ignored -eq 0 ]; then
+      echo "$clean_obj"
     fi
   done
 }
