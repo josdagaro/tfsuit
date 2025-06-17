@@ -12,22 +12,22 @@ tfsuit() {
     source finder.sh
     source github.sh
 
-    # Initialization of variables for Terraform variables
+    # Inicialización de variables para Terraform variables
     local compliant_variables
     local not_compliant_variables
     local variables_summary
     local variables_message
-    # Initialization of variables for Terraform outputs
+    # Inicialización de variables para Terraform outputs
     local compliant_outputs
     local not_compliant_outputs
     local outputs_summary
     local outputs_message
-    # Initialization of variables for Terraform modules
+    # Inicialización de variables para Terraform módulos
     local compliant_modules
     local not_compliant_modules
     local modules_summary
     local modules_message
-    # Initialization of variables for Terraform resources
+    # Inicialización de variables para Terraform recursos
     local compliant_resources
     local not_compliant_resources
     local resources_summary
@@ -42,7 +42,7 @@ tfsuit() {
     message="[ERROR]"
     error_exists=0
 
-    # Terraform variables analysis
+    # Análisis de variables de Terraform
     echo "Processing variables..."
 
     variables_summary=$(finder::run \
@@ -66,7 +66,7 @@ tfsuit() {
       error_exists=1
     fi
 
-    # Terraform outputs analysis
+    # Análisis de outputs de Terraform
     echo "processing outputs..."
 
     outputs_summary=$(finder::run \
@@ -90,7 +90,7 @@ tfsuit() {
       error_exists=1
     fi
 
-    # Terraform modules analysis
+    # Análisis de módulos de Terraform
     echo "processing modules..."
 
     modules_summary=$(finder::run \
@@ -114,7 +114,30 @@ tfsuit() {
       error_exists=1
     fi
 
-    # Terraform resources analysis
+    # Validación de las variables pasadas a los módulos
+    echo "Evaluando argumentos de módulos para variables con sufijo de región..."
+
+    grep -Poz 'module\s+"[a-zA-Z0-9_-]+"\s*\{[^}]+\}' *.tf | \
+    while IFS= read -r -d '' module_block; do
+      module_name=$(echo "$module_block" | grep -Po 'module\s+"\K[^"]+')
+      
+      # Extraer la región del nombre del módulo, e.g., _virginia
+      region=$(echo "$module_name" | grep -Po '_\K[a-z0-9]+$')
+      
+      # Buscar los argumentos que usan variables
+      echo "$module_block" | grep -Po '\s+\w+\s+=\s+var\.\w+' | while read -r line; do
+        varname=$(echo "$line" | grep -Po 'var\.\K\w+')
+        argname=$(echo "$line" | awk -F= '{print $1}' | tr -d ' ')
+
+        # Si el argumento empieza con associate_ se espera que la variable tenga sufijo de región
+        if [[ "$argname" == associate_* ]] && [[ "$varname" != *_$region ]]; then
+          echo "[ERROR] En el módulo '$module_name': la variable '$varname' usada para '$argname' debería terminar en '_$region'"
+          error_exists=1
+        fi
+      done
+    done
+
+    # Análisis de recursos de Terraform
     echo "processing resources..."
     remove_double_quotes_for_resources=$(jq <"$config_json_path" -r '.resources.naming_conventions.remove_double_quotes')
     echo "remove double quotes for resources: $remove_double_quotes_for_resources"
@@ -184,7 +207,7 @@ tfsuit() {
     echo "$compliant_resources" | jq
     github::set_output "compliant_resources" "$(echo "$compliant_resources" | jq -rc)"
     echo "not compliant resources:"
-    # If it fails, just print the content as raw
+    # Si falla, imprime el contenido crudo
     echo "$not_compliant_resources" | jq || echo "$not_compliant_resources"
     github::set_output "not_compliant_resources" "$(echo "$not_compliant_resources" | jq -rc)"
 
