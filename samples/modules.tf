@@ -12,7 +12,7 @@ module "ecs_Foobar" {
     bar = "foo"
 }
 
-module "Ec-bar" {
+                module "Ec-bar" {           
     source = "../"
 
     foo = "bar"
