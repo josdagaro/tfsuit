@@ -52,8 +52,8 @@ override.tf.json
 # Proyecto tfsuit                     #
 #######################################
 # Binario compilado de la CLI
-tfsuit
-!cmd
+# Solo el binario “tfsuit” en la raíz
+/tfsuit
 
 # Scripts temporales
 tmp.sh
