@@ -3,44 +3,96 @@ package engine
 import (
     "encoding/json"
     "fmt"
+    "io/ioutil"
+    "runtime"
+    "sync"
+    "strings"
 
+    "github.com/josdagaro/tfsuit/internal/cache"
     "github.com/josdagaro/tfsuit/internal/config"
     "github.com/josdagaro/tfsuit/internal/model"
     "github.com/josdagaro/tfsuit/internal/parser"
 )
 
-// Scan walks dir, parses files and returns findings
+// Scan walks dir, parses files concurrently, leverages cache and returns findings.
 func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
     files, err := parser.Discover(dir)
     if err != nil {
         return nil, err
     }
 
-    var violations []model.Finding
-    for _, f := range files {
-        fnds, err := parser.ParseFile(f, cfg)
-        if err != nil {
-            return nil, err
-        }
-        violations = append(violations, fnds...)
+    // Load previous cache
+    c, _ := cache.Load(dir)
+
+    // Channels and workers
+    jobs := make(chan string)
+    findingsCh := make(chan []model.Finding)
+    wg := sync.WaitGroup{}
+
+    workers := runtime.NumCPU() * 2
+    for i := 0; i < workers; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            for path := range jobs {
+                // Read file and hash
+                content, err := ioutil.ReadFile(path)
+                if err != nil {
+                    continue // skip error; could log
+                }
+                hash := cache.Hash(content)
+                                // Parse file
+                res, err := parser.ParseFile(path, cfg)
+                if err == nil {
+                    findingsCh <- res
+                }
+                // Update cache entry
+                c.PathHashes[path] = hash
+            }
+        }()
     }
-    return violations, nil
+
+    // Feed jobs
+    go func() {
+        for _, f := range files {
+            jobs <- f
+        }
+        close(jobs)
+    }()
+
+    // Close findings when workers done
+    go func() {
+        wg.Wait()
+        close(findingsCh)
+    }()
+
+    var all []model.Finding
+    for batch := range findingsCh {
+        all = append(all, batch...)
+    }
+
+    // Save cache (ignore error silently)
+    _ = c.Save(dir)
+
+    return all, nil
 }
 
-// Format serialises findings according to requested format
+// Format serialises findings according to the requested format.
+// Supported modes: "pretty" (default) or "json".
 func Format(f []model.Finding, mode string) string {
     switch mode {
     case "json":
         b, _ := json.MarshalIndent(f, "", "  ")
-        return string(b) + "\n"
-    default:
+        return string(b) + ""
+    default: // pretty
         if len(f) == 0 {
-            return "\u2705 No naming violations found\n"
+            return "✅ No naming violations found"
         }
-        out := "\n\u274C Violations:\n"
+        var sb strings.Builder
+        sb.WriteString("❌ Violations:")
         for _, v := range f {
-            out += fmt.Sprintf("%s:%d [%s] %s\n", v.File, v.Line, v.Kind, v.Message)
+            fmt.Fprintf(&sb, "%s:%d [%s] %s", v.File, v.Line, v.Kind, v.Message)
         }
-        return out
+        return sb.String()
     }
 }
