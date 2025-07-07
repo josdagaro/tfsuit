@@ -28,19 +28,42 @@ func Discover(root string) ([]string, error) {
     return list, err
 }
 
-// ParseFile extracts identifiers from a .tf file (placeholder implementation)
+// ParseFile extracts identifiers and evaluates naming rules
 func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
     src, err := os.ReadFile(path)
     if err != nil {
         return nil, err
     }
+
     file, diags := hclsyntax.ParseConfig(src, path, hcl.Pos{Line: 1, Column: 1})
     if diags.HasErrors() {
         return nil, fmt.Errorf("%s: %s", path, diags.Error())
     }
 
-    // TODO: Walk AST (file.Body) and apply cfg rules to produce findings
-    _ = file
+    var findings []model.Finding
 
-    return nil, nil
+    for _, block := range file.Body.Blocks {
+        switch block.Type {
+        case "variable":
+            if len(block.Labels) == 0 {
+                continue
+            }
+            name := block.Labels[0]
+            rule := &cfg.Variables
+            if rule.IsIgnored(name) {
+                continue
+            }
+            if !rule.Matches(name) {
+                findings = append(findings, model.Finding{
+                    File:    path,
+                    Line:    block.DefRange.Start.Line,
+                    Kind:    "variable",
+                    Name:    name,
+                    Message: fmt.Sprintf("variable '%s' does not match pattern %s", name, rule.Pattern),
+                })
+            }
+        }
+    }
+
+    return findings, nil
 }
