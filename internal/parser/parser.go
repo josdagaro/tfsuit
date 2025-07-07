@@ -28,7 +28,8 @@ func Discover(root string) ([]string, error) {
     return list, err
 }
 
-// ParseFile extracts identifiers and evaluates naming rules
+// ParseFile extracts identifiers for variables, outputs, modules and resources,
+// evaluates them against naming rules, and returns violations.
 func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
     src, err := os.ReadFile(path)
     if err != nil {
@@ -40,7 +41,6 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
         return nil, fmt.Errorf("%s: %s", path, diags.Error())
     }
 
-    // Convert generic body to concrete syntax body to access Blocks
     syntaxBody, ok := file.Body.(*hclsyntax.Body)
     if !ok {
         return nil, fmt.Errorf("unexpected body type in %s", path)
@@ -55,21 +55,48 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
                 continue
             }
             name := block.Labels[0]
-            rule := &cfg.Variables
-            if rule.IsIgnored(name) {
+            evalRule(&findings, path, block, "variable", name, &cfg.Variables)
+
+        case "output":
+            if len(block.Labels) == 0 {
                 continue
             }
-            if !rule.Matches(name) {
-                findings = append(findings, model.Finding{
-                    File:    path,
-                    Line:    block.DefRange().Start.Line,
-                    Kind:    "variable",
-                    Name:    name,
-                    Message: fmt.Sprintf("variable '%s' does not match pattern %s", name, rule.Pattern),
-                })
+            name := block.Labels[0]
+            evalRule(&findings, path, block, "output", name, &cfg.Outputs)
+
+        case "module":
+            if len(block.Labels) == 0 {
+                continue
             }
+            name := block.Labels[0]
+            evalRule(&findings, path, block, "module", name, &cfg.Modules)
+
+        case "resource":
+            // resource blocks have two labels: TYPE and NAME
+            if len(block.Labels) < 2 {
+                continue
+            }
+            name := block.Labels[1]
+            evalRule(&findings, path, block, "resource", name, &cfg.Resources)
         }
     }
 
     return findings, nil
+}
+
+// evalRule checks a single identifier against its rule and appends a finding if needed.
+func evalRule(findings *[]model.Finding, path string, block *hclsyntax.Block, kind, name string, rule *config.Rule) {
+    if rule.IsIgnored(name) {
+        return
+    }
+    if rule.Matches(name) {
+        return
+    }
+    *findings = append(*findings, model.Finding{
+        File:    path,
+        Line:    block.DefRange().Start.Line,
+        Kind:    kind,
+        Name:    name,
+        Message: fmt.Sprintf("%s '%s' does not match pattern %s", kind, name, rule.Pattern),
+    })
 }
