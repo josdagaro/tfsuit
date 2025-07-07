@@ -53,6 +53,7 @@ override.tf.json
 #######################################
 # Binario compilado de la CLI
 tfsuit
+!cmd
 
 # Scripts temporales
 tmp.sh

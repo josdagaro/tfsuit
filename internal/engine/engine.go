@@ -4,13 +4,13 @@ import (
     "encoding/json"
     "fmt"
 
+    "github.com/josdagaro/tfsuit/internal/config"
     "github.com/josdagaro/tfsuit/internal/model"
     "github.com/josdagaro/tfsuit/internal/parser"
 )
 
 // Scan walks dir, parses files and returns findings
-func Scan(dir string, cfgPath string) ([]model.Finding, error) {
-    // TODO: wire cfg, cache, concurrency
+func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
     files, err := parser.Discover(dir)
     if err != nil {
         return nil, err
@@ -18,7 +18,7 @@ func Scan(dir string, cfgPath string) ([]model.Finding, error) {
 
     var violations []model.Finding
     for _, f := range files {
-        fnds, err := parser.ParseFile(f)
+        fnds, err := parser.ParseFile(f, cfg)
         if err != nil {
             return nil, err
         }
