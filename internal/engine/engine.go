@@ -7,6 +7,7 @@ import (
     "runtime"
     "sync"
     "strings"
+    "sort"
 
     "github.com/josdagaro/tfsuit/internal/cache"
     "github.com/josdagaro/tfsuit/internal/config"
@@ -78,20 +79,33 @@ func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
 }
 
 // Format serialises findings according to the requested format.
-// Supported modes: "pretty" (default) or "json".
+// Modes: "pretty" (default) or "json".
+// Pretty output sorts by file+line and prints one violation per line.
 func Format(f []model.Finding, mode string) string {
     switch mode {
     case "json":
         b, _ := json.MarshalIndent(f, "", "  ")
-        return string(b) + ""
+        return string(b) + "\n"
+
     default: // pretty
         if len(f) == 0 {
-            return "✅ No naming violations found"
+            return "✅ No naming violations found\n"
         }
+
+        // orden estable por archivo y línea
+        sort.Slice(f, func(i, j int) bool {
+            if f[i].File == f[j].File {
+                return f[i].Line < f[j].Line
+            }
+            return f[i].File < f[j].File
+        })
+
         var sb strings.Builder
-        sb.WriteString("❌ Violations:")
+        sb.WriteString("\n❌ Violations:\n")
+
         for _, v := range f {
-            fmt.Fprintf(&sb, "%s:%d [%s] %s", v.File, v.Line, v.Kind, v.Message)
+            fmt.Fprintf(&sb, "%s:%d [%s] %s\n",
+                v.File, v.Line, v.Kind, v.Message)
         }
         return sb.String()
     }
