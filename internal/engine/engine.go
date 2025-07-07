@@ -4,26 +4,19 @@ import (
     "encoding/json"
     "fmt"
 
+    "github.com/josdagaro/tfsuit/internal/model"
     "github.com/josdagaro/tfsuit/internal/parser"
 )
 
-type Finding struct {
-    File    string `json:"file"`
-    Line    int    `json:"line"`
-    Kind    string `json:"kind"`
-    Name    string `json:"name"`
-    Message string `json:"message"`
-}
-
 // Scan walks dir, parses files and returns findings
-func Scan(dir string, cfgPath string) ([]Finding, error) {
+func Scan(dir string, cfgPath string) ([]model.Finding, error) {
     // TODO: wire cfg, cache, concurrency
     files, err := parser.Discover(dir)
     if err != nil {
         return nil, err
     }
 
-    var violations []Finding
+    var violations []model.Finding
     for _, f := range files {
         fnds, err := parser.ParseFile(f)
         if err != nil {
@@ -35,7 +28,7 @@ func Scan(dir string, cfgPath string) ([]Finding, error) {
 }
 
 // Format serialises findings according to requested format
-func Format(f []Finding, mode string) string {
+func Format(f []model.Finding, mode string) string {
     switch mode {
     case "json":
         b, _ := json.MarshalIndent(f, "", "  ")
