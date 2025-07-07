@@ -20,7 +20,7 @@ func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
     for _, f := range files {
         fnds, err := parser.ParseFile(f, cfg)
         if err != nil {
-            return err, nil
+            return nil, err
         }
         violations = append(violations, fnds...)
     }
