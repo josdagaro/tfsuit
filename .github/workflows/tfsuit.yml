@@ -19,11 +19,19 @@ jobs:
         run: go build -o tfsuit ./cmd/tfsuit
 
       - name: Run tfsuit → SARIF
+        id: tfsuit
+        continue-on-error: true          # ← no detiene el job
         run: |
-          ./tfsuit --format sarif --fail ./ > tfsuit.sarif
+            ./tfsuit --format sarif --fail ./ > tfsuit.sarif
+            echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
-      # ⬇️ cambia @v2 por @v3
-      - name: Upload SARIF to Code Scanning
+      - name: Upload SARIF
+        if: always()                     # ← se ejecuta aunque el paso anterior “fallara”
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: tfsuit.sarif
+            sarif_file: tfsuit.sarif
+
+      # Paso final: hace fallar el job si salieron violaciones
+      - name: Fail if tfsuit found issues
+        if: steps.tfsuit.outputs.exit_code != '0'
+        run: exit 1
