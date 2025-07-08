@@ -23,4 +23,6 @@ jobs:
         run: go test -v ./...
 
       - name: Benchmarks (10 s máx)
-        run: go test -bench ./... -benchtime=3x -run '^$'
+        run: |
+          pkgs=$(go list ./... | grep -v '^.$')     # excluye el paquete raíz “./”
+          go test -bench=. -benchtime=3x -run=^$ $pkgs
