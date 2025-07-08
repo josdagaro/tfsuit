@@ -107,15 +107,23 @@ func Format(f []model.Finding, mode string) string {
 // buildSARIF constructs a minimal SARIF v2.1.0 document.
 func buildSARIF(findings []model.Finding) string {
 	type (
-		artifactLocation struct{ Uri string `json:"uri"` }
-		region           struct{ StartLine int `json:"startLine"` }
+		artifactLocation struct {
+			Uri string `json:"uri"`
+		}
+		region struct {
+			StartLine int `json:"startLine"`
+		}
 		physicalLocation struct {
 			ArtifactLocation artifactLocation `json:"artifactLocation"`
 			Region           region           `json:"region"`
 		}
-		location struct{ PhysicalLocation physicalLocation `json:"physicalLocation"` }
-		message  struct{ Text string `json:"text"` }
-		result   struct {
+		location struct {
+			PhysicalLocation physicalLocation `json:"physicalLocation"`
+		}
+		message struct {
+			Text string `json:"text"`
+		}
+		result struct {
 			Level     string     `json:"level"`
 			Message   message    `json:"message"`
 			Locations []location `json:"locations"`

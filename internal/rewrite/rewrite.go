@@ -16,7 +16,7 @@ import (
 
 	"github.com/josdagaro/tfsuit/internal/config"
 	"github.com/josdagaro/tfsuit/internal/model"
-    "github.com/josdagaro/tfsuit/internal/parser"
+	"github.com/josdagaro/tfsuit/internal/parser"
 )
 
 /* -------------------------------------------------------------------------- */
@@ -182,5 +182,5 @@ func collectTfFiles(root string) ([]string, error) {
 }
 
 func ScanFileAfterFix(path string, cfg *config.Config) ([]model.Finding, error) {
-    return parser.ParseFile(path, cfg)
+	return parser.ParseFile(path, cfg)
 }

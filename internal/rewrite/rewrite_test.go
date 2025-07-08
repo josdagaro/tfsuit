@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/josdagaro/tfsuit/internal/config"
-	"github.com/josdagaro/tfsuit/internal/rewrite"
 	"github.com/josdagaro/tfsuit/internal/parser"
+	"github.com/josdagaro/tfsuit/internal/rewrite"
 )
 
 func TestFixWritesFiles(t *testing.T) {
@@ -43,10 +43,14 @@ func TestFixWritesFiles(t *testing.T) {
 
 func copyDir(src, dst string) error {
 	return filepath.Walk(src, func(p string, info os.FileInfo, err error) error {
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 		rel, _ := filepath.Rel(src, p)
 		target := filepath.Join(dst, rel)
-		if info.IsDir() { return os.MkdirAll(target, 0o755) }
+		if info.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
 		b, _ := os.ReadFile(p)
 		return os.WriteFile(target, b, info.Mode())
 	})
