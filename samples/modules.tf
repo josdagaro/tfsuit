@@ -74,3 +74,11 @@ module ecs_bad {
     foo = "bar"
     bar = "foo"
 }
+
+
+module "eks_Foobar" {
+    source = "../"
+
+    foo = module.ecs_Foobar.id
+    bar = module.Ec-bar.id
+}   
