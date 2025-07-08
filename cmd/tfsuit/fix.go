@@ -22,15 +22,25 @@ func newFixCmd() *cobra.Command {
             if len(args) == 1 {
                 target = args[0]
             }
+
+            // Si --write se pasó, forzamos dryRun=false
+            if write {
+                dryRun = false
+            } else {
+                // modo por defecto es dry-run
+                dryRun = true
+            }
+
             cfg, err := config.Load(cfgFile)
             if err != nil {
                 return err
             }
-            opts := rewrite.Options{Write: write && !dryRun, DryRun: dryRun}
+            opts := rewrite.Options{Write: write, DryRun: dryRun}
             return rewrite.Run(target, cfg, opts)
         },
     }
-    cmd.Flags().BoolVar(&write, "write", false, "write changes in-place (default false)")
-    cmd.Flags().BoolVar(&dryRun, "dry-run", true, "show proposed diff instead of writing (default true)")
+
+    cmd.Flags().BoolVar(&write,  "write",   false, "write changes in-place")
+    cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview diff only (default true when --write is not supplied)")
     return cmd
 }
