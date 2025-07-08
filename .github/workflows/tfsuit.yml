@@ -1,3 +1,4 @@
+# .github/workflows/tfsuit.yml
 name: tfsuit scan
 
 on:
@@ -10,20 +11,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: 1.24
 
       - name: Build tfsuit
-        run: |
-          go build -o tfsuit ./cmd/tfsuit
+        run: go build -o tfsuit ./cmd/tfsuit
 
-      - name: Run tfsuit -> SARIF
+      - name: Run tfsuit → SARIF
         run: |
-          ./tfsuit --format sarif ./ > tfsuit.sarif
+          ./tfsuit --format sarif --fail ./ > tfsuit.sarif
 
+      # ⬇️ cambia @v2 por @v3
       - name: Upload SARIF to Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: tfsuit.sarif
