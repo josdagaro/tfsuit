@@ -4,6 +4,7 @@ go 1.24.4
 
 require (
 	github.com/hashicorp/hcl/v2 v2.23.0
+	github.com/sergi/go-diff v1.4.0
 	github.com/spf13/cobra v1.9.1
 )
 

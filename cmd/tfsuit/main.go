@@ -47,6 +47,7 @@ func rootCmd() *cobra.Command {
     cmd.Flags().StringVarP(&cfgFile, "config", "c", "tfsuit.hcl", "configuration file (HCL or JSON)")
     cmd.Flags().StringVarP(&format, "format", "f", "pretty", "output format: pretty|json|sarif")
     cmd.Flags().BoolVar(&fail, "fail", false, "return non-zero exit if violations found")
+	cmd.AddCommand(newFixCmd())
 
     return cmd
 }
