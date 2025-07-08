@@ -1,0 +1,26 @@
+name: tfsuit CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Vet & fmt
+        run: |
+          go vet ./...
+          test -z "$(gofmt -s -l . | tee /dev/stderr)"
+
+      - name: Unit tests
+        run: go test -v ./...
+
+      - name: Benchmarks (10 s máx)
+        run: go test -bench ./... -benchtime=3x -run '^$'
