@@ -90,10 +90,10 @@ func Load(path string) (*Config, error) {
     default: // assume HCL
         file, diags := hclsyntax.ParseConfig(data, path, hcl.Pos{Line: 1, Column: 1})
         if diags.HasErrors() {
-            return nil, fmt.Errorf(diags.Error())
+            return nil, fmt.Errorf("%s", diags.Error())
         }
         if diags := gohcl.DecodeBody(file.Body, nil, &cfg); diags.HasErrors() {
-            return nil, fmt.Errorf(diags.Error())
+            return nil, fmt.Errorf("%s", diags.Error())
         }
     }
 

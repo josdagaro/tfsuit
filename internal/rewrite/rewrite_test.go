@@ -7,26 +7,35 @@ import (
 
 	"github.com/josdagaro/tfsuit/internal/config"
 	"github.com/josdagaro/tfsuit/internal/rewrite"
+	"github.com/josdagaro/tfsuit/internal/parser"
 )
 
 func TestFixWritesFiles(t *testing.T) {
-	// copiamos el fixture a un tmpdir porque vamos a escribir
 	tmp := t.TempDir()
-	src := filepath.FromSlash("../../testdata/simple")
+
+	// copia el fixture simple al tmpdir
+	src := filepath.FromSlash("../testdata/simple") // ← ubicación real
 	if err := copyDir(src, tmp); err != nil {
-		t.Fatalf("copy: %v", err)
+		t.Fatalf("copyDir: %v", err)
 	}
 
-	cfg, _ := config.Load(filepath.Join(tmp, "tfsuit.hcl"))
+	cfg, err := config.Load(filepath.Join(tmp, "tfsuit.hcl"))
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
 	if err := rewrite.Run(tmp, cfg, rewrite.Options{Write: true}); err != nil {
 		t.Fatalf("fix: %v", err)
 	}
 
-	// volvemos a escanear: no debe quedar ninguna violación
+	// volver a parsear bad.tf: ya no debe haber violaciones
 	bad := filepath.Join(tmp, "bad.tf")
-	findings, _ := rewrite.ScanFileAfterFix(bad, cfg) // helper opcional
+	findings, err := parser.ParseFile(bad, cfg)
+	if err != nil {
+		t.Fatalf("parse after fix: %v", err)
+	}
 	if len(findings) != 0 {
-		t.Fatalf("still have violations after fix")
+		t.Fatalf("expected 0 findings after fix, got %d", len(findings))
 	}
 }
 

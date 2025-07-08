@@ -9,7 +9,7 @@ import (
 )
 
 func TestParserDetectsViolations(t *testing.T) {
-	root := filepath.FromSlash("../../testdata/simple")
+	root := filepath.FromSlash("../testdata/simple")
 	cfg, err := config.Load(filepath.Join(root, "tfsuit.hcl"))
 	if err != nil {
 		t.Fatalf("load cfg: %v", err)

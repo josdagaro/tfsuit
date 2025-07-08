@@ -15,6 +15,8 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 
 	"github.com/josdagaro/tfsuit/internal/config"
+	"github.com/josdagaro/tfsuit/internal/model"
+    "github.com/josdagaro/tfsuit/internal/parser"
 )
 
 /* -------------------------------------------------------------------------- */
@@ -177,4 +179,8 @@ func collectTfFiles(root string) ([]string, error) {
 		return nil
 	})
 	return out, err
+}
+
+func ScanFileAfterFix(path string, cfg *config.Config) ([]model.Finding, error) {
+    return parser.ParseFile(path, cfg)
 }
