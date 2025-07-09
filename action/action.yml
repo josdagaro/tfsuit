@@ -1,43 +1,29 @@
-# action/action.yml  (irá en la carpeta action/ del mismo repo)
 name: "tfsuit"
-description: "Terraform naming linter & fixer (Go, super-fast)"
-author: "José David García Rodríguez"
-
+description: "Fast Terraform naming linter & fixer"
 inputs:
   path:
-    description: "Ruta del código Terraform a analizar"
-    required: false
+    description: "Directory to scan"
     default: "."
   config:
-    description: "Archivo HCL/JSON de reglas (ej. tfsuit.hcl)"
-    required: false
+    description: "Config file (HCL/JSON)"
     default: "tfsuit.hcl"
   format:
     description: "pretty | json | sarif"
-    required: false
     default: "pretty"
   fail:
-    description: "true = action falla si hay violaciones"
-    required: false
+    description: "Fail the job if violations found"
     default: "false"
-  debug:
-    description: "true para salida detallada"
-    required: false
-    default: "false"
-
-outputs:
-  findings:
-    description: "Listado JSON de violaciones (si format=json)"
-
-branding:
-  icon: "box"
-  color: "green"
-
 runs:
-  using: docker
-  image: Dockerfile
+  using: "docker"
+  image: "docker://ghcr.io/josdagaro/tfsuit:v${{ github.action_ref }}"
   args:
+    - scan
     - ${{ inputs.path }}
-    - --config=${{ inputs.config }}
-    - --format=${{ inputs.format }}
+    - --config
+    - ${{ inputs.config }}
+    - --format
+    - ${{ inputs.format }}
     - ${{ inputs.fail == 'true' && '--fail' || '' }}
+branding:
+  icon: "check-square"
+  color: "purple"
