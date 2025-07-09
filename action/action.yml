@@ -15,7 +15,7 @@ inputs:
     default: "false"
 runs:
   using: "docker"
-  image: "docker://ghcr.io/josdagaro/tfsuit:v${{ github.action_ref }}"
+  image: "docker://ghcr.io/josdagaro/tfsuit:v1"
   args:
     - scan
     - ${{ inputs.path }}
