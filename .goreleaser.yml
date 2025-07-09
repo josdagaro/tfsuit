@@ -40,6 +40,8 @@ dockers:
       - ghcr.io/josdagaro/tfsuit:{{ .Tag }}
     dockerfile: Dockerfile.tfsuit
     use: buildx
+    extra_files:
+      - action/entrypoint.sh:/entrypoint.sh
 
 release:
   name_template: "tfsuit {{ .Tag }}"

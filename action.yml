@@ -1,55 +1,45 @@
+# action/action.yml  (irá en la carpeta action/ del mismo repo)
 name: "tfsuit"
-description: "Terraform customizable tool for defining your standards, styles, and naming conventions"
+description: "Terraform naming linter & fixer (Go, super-fast)"
+author: "José David García Rodríguez"
+
 inputs:
-  dir:
-    description: "Whether the project is a module or a digital product (available values to pass are: | proj | mod |)"
-    required: true
-  config_json_path:
-    description: "The TF project directory will be analyzed"
-    required: true
-  fail_on_not_compliant:
-    description: "Whether to launch an exit 1 when it detects there are some rules that weren't accomplished"
+  path:
+    description: "Ruta del código Terraform a analizar"
+    required: false
+    default: "."
+  config:
+    description: "Archivo HCL/JSON de reglas (ej. tfsuit.hcl)"
+    required: false
+    default: "tfsuit.hcl"
+  format:
+    description: "pretty | json | sarif"
+    required: false
+    default: "pretty"
+  fail:
+    description: "true = action falla si hay violaciones"
     required: false
     default: "false"
-  docs_link:
-    description: "Related documentation link to show when tfsuit fails because not compliant rules"
-    required: false
-    default: ""
-  github_actions:
-    description: "Whether to set GitHub Actions outputs or not"
-    required: false
-    default: "true"
   debug:
-    description: "Whether to enable debugging mode or not"
+    description: "true para salida detallada"
     required: false
     default: "false"
+
 outputs:
-  compliant_vars:
-    description: "A JSON list of compliant vars"
-  not_complaint_vars:
-    description: "A JSON list of not compliant vars"
-  compliant_outputs:
-    description: "A JSON list of compliant outputs"
-  not_compliant_outputs:
-    description: "A JSON list of not compliant outputs"
-  compliant_modules:
-    description: "A JSON list of compliant modules"
-  not_compliant_modules:
-    description: "A JSON list of not compliant modules"
-  compliant_resources:
-    description: "A JSON list of compliant resources"
-  not_compliant_resources:
-    description: "A JSON list of not compliant resources"
-runs:
-  using: "docker"
-  image: "Dockerfile"
-  args:
-    - ${{ inputs.debug }}
-    - ${{ inputs.dir }}
-    - ${{ inputs.config_json_path }}
-    - ${{ inputs.fail_on_not_compliant }}
-    - ${{ inputs.docs_link }}
-    - ${{ inputs.github_actions }}
+  findings:
+    description: "Listado JSON de violaciones (si format=json)"
+
 branding:
   icon: "box"
-  color: "gray-dark"
+  color: "green"
+
+runs:
+  using: "docker"
+  image: "docker://ghcr.io/josdagaro/tfsuit:${{ tag }}"
+  entrypoint: /entrypoint.sh
+  args:
+    - ${{ inputs.debug }}
+    - ${{ inputs.path }}
+    - ${{ inputs.config }}
+    - ${{ inputs.format }}
+    - ${{ inputs.fail }}
