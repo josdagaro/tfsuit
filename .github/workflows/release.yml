@@ -69,9 +69,9 @@ jobs:
 
   # ------------------------------------------------------------------ #
   update-major-minor:
-    needs: goreleaser
+    needs: [goreleaser, tag]   # 👈 incluye ambos
     runs-on: ubuntu-latest
-    if: needs.tag.outputs.version != ''
+    if: needs.tag.result == 'success' && needs.tag.outputs.version != ''
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
@@ -90,24 +90,23 @@ jobs:
 
   # ------------------------------------------------------------------ #
   changelog:
-    needs: goreleaser
+    needs: [goreleaser, tag]          # ← incluye tag si usas su versión
     runs-on: ubuntu-latest
-    if: needs.tag.outputs.version != ''
+    if: needs.tag.result == 'success'
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_TOKEN }}
+          fetch-depth: 0              # ↓ token por defecto, sin línea extra
 
       - name: Generate CHANGELOG
         uses: heinrichreimer/github-changelog-generator-action@v2.3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}  # puedes omitir, la action lo toma sola
 
       - name: Commit & push CHANGELOG
         run: |
-          git config --local user.name github-actions
+          git config --local user.name  github-actions
           git config --local user.email github-actions@github.com
           git add CHANGELOG.md
-          git commit -m "chore(docs): update changelog" || true
+          git commit -m "docs: update changelog" || true
           git push
