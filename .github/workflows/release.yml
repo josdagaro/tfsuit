@@ -49,8 +49,8 @@ jobs:
 
       - uses: goreleaser/goreleaser-action@v5
         with:
-          version: latest
-          args: release --clean --tag=${{ needs.tag.outputs.version }}
+          version: latest          # v1.x
+          args: release --clean    # ← sin --tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
