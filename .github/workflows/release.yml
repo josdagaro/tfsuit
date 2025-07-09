@@ -49,10 +49,12 @@ jobs:
 
       - uses: goreleaser/goreleaser-action@v5
         with:
-          version: v2.0.0          # ← fuerza la rama v2 (o el tag más reciente v2.x)
-          args: release --clean    # sin --tag; toma el tag del repo
+          version: v2
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_USERNAME: ${{ github.repository_owner }}
+          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ------------------------------------------------------------------ #
