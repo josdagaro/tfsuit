@@ -49,8 +49,8 @@ jobs:
 
       - uses: goreleaser/goreleaser-action@v5
         with:
-          version: latest          # v1.x
-          args: release --clean    # ← sin --tag
+          version: v2.0.0          # ← fuerza la rama v2 (o el tag más reciente v2.x)
+          args: release --clean    # sin --tag; toma el tag del repo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
