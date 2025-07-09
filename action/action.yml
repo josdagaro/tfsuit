@@ -13,17 +13,16 @@ inputs:
   fail:
     description: "Fail the job if violations found"
     default: "false"
+
 runs:
   using: "docker"
   image: "docker://ghcr.io/josdagaro/tfsuit:v1"
   args:
     - scan
     - ${{ inputs.path }}
-    - --config
-    - ${{ inputs.config }}
-    - --format
-    - ${{ inputs.format }}
-    - ${{ inputs.fail == 'true' && '--fail' || '' }}
+    - --config=${{ inputs.config }}
+    - --format=${{ inputs.format }}
+    - ${{ inputs.fail == 'true' && '--fail' }}
 branding:
   icon: "check-square"
   color: "purple"
