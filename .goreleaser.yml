@@ -41,7 +41,7 @@ dockers:
     dockerfile: Dockerfile.tfsuit
     use: buildx
     extra_files:
-      - action/entrypoint.sh:/entrypoint.sh
+      - action/entrypoint.sh
 
 release:
   name_template: "tfsuit {{ .Tag }}"
