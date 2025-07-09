@@ -1,54 +1,101 @@
 name: Release
 
 on:
-  push:
-    branches: [main]             # cada merge a main evalúa si hay nuevos cambios
-  workflow_dispatch:             # permite lanzar manualmente
+  pull_request:
+    types: [closed]           # solo cuando el PR se fusiona
+    branches: [main]
+
+permissions:
+  contents: write             # para crear tags y releases
+  packages: write             # para publicar Docker
 
 jobs:
-  test:
+  # ------------------------------------------------------------------ #
+  tag:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with: {go-version: 1.24}
-      - run: go vet ./...
-      - run: go test ./...
-
-  semantic-version:
-    runs-on: ubuntu-latest
-    needs: test
     outputs:
-      tag: ${{ steps.tag.outputs.tag }}
+      version: ${{ steps.semver.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
 
-      - id: tag                                  # ← ponle id
-        name: Calculate next version
+      # 1️⃣ Calcula la versión a partir del label (major/minor/patch)
+      - id: semver
         uses: K-Phoen/semver-release-action@v1.3.2
         with:
           release_branch: main
-          release_strategy: tag                  # crea solo la etiqueta
+          release_strategy: tag
           tag_format: 'v%major%.%minor%.%patch%'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ------------------------------------------------------------------ #
   goreleaser:
+    needs: tag
     runs-on: ubuntu-latest
-    needs: semantic-version
-    # se ejecuta sólo si se creó una etiqueta nueva
-    if: needs.semantic-version.outputs.tag != ''
-    permissions: write-all
+    if: needs.tag.outputs.version != ''    # corre solo si se generó tag
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
+
       - uses: actions/setup-go@v5
         with: {go-version: 1.24}
+
+      - name: Run tests
+        run: |
+          go vet ./...
+          go test ./...
+
       - uses: goreleaser/goreleaser-action@v5
         with:
           version: latest
-          args: release --clean --tag=${{ needs.semantic-version.outputs.tag }}
+          args: release --clean --tag=${{ needs.tag.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ------------------------------------------------------------------ #
+  update-major-minor:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    if: needs.tag.outputs.version != ''
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+
+      - name: Update major/minor moving tags
+        run: |
+          VERSION=${{ needs.tag.outputs.version }}
+          MAJOR=${VERSION%%.*}
+          MINOR=${VERSION%.*}
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions"
+          git tag -fa "$MAJOR" -m "Update tag $MAJOR"
+          git tag -fa "$MINOR" -m "Update tag $MINOR"
+          git push origin "$MAJOR" --force
+          git push origin "$MINOR" --force
+
+  # ------------------------------------------------------------------ #
+  changelog:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    if: needs.tag.outputs.version != ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CHANGELOG_TOKEN }}
+
+      - name: Generate CHANGELOG
+        uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit & push CHANGELOG
+        run: |
+          git config --local user.name github-actions
+          git config --local user.email github-actions@github.com
+          git add CHANGELOG.md
+          git commit -m "chore(docs): update changelog" || true
+          git push
