@@ -35,10 +35,10 @@ brews:
       email: bot@goreleaser.com
 
 dockers:
-  - dockerfile: Dockerfile.tfsuit       # el runtime
-    image_templates:
+  - image_templates:
       - ghcr.io/josdagaro/tfsuit:latest
       - ghcr.io/josdagaro/tfsuit:{{ .Tag }}
+    dockerfile: Dockerfile.tfsuit
     use: buildx
 
 release:
