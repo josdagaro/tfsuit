@@ -57,9 +57,11 @@ jobs:
       - uses: goreleaser/goreleaser-action@v5
         with:
           version: v2
-          args: release --clean
+          args: release --clean --tag=${{ needs.tag.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_USERNAME: ${{ github.actor }}
+          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ------------------------------------------------------------------ #
