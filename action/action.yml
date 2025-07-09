@@ -35,8 +35,7 @@ branding:
 
 runs:
   using: "docker"
-  image: "docker://ghcr.io/josdagaro/tfsuit:${{ tag }}"
-  entrypoint: /entrypoint.sh
+  image: "Dockerfile"
   args:
     - ${{ inputs.debug }}
     - ${{ inputs.path }}
