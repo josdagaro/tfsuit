@@ -18,7 +18,6 @@ runs:
   using: "docker"
   image: "docker://ghcr.io/josdagaro/tfsuit:v1"
   args:
-    - scan
     - ${{ inputs.path }}
     - --config=${{ inputs.config }}
     - --format=${{ inputs.format }}
