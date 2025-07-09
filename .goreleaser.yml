@@ -9,6 +9,8 @@ before:
 builds:
   - id: default
     main: ./cmd/tfsuit
+    env:
+      - CGO_ENABLED=0
     ldflags:
       - -s -w -X main.version={{ .Version }}
     goos: [linux, darwin, windows]
@@ -42,6 +44,8 @@ dockers:
       - ghcr.io/josdagaro/tfsuit:{{ .Tag }}
     dockerfile: action/Dockerfile
     use: buildx
+    build_flag_templates:
+      - --load
 
 release:
   name_template: "tfsuit {{ .Tag }}"
