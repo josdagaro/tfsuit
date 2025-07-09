@@ -49,7 +49,7 @@ docker run --rm -v "$PWD:/src" ghcr.io/josdagaro/tfsuit:latest scan /src
 Add to your workflow:
 
 ```yaml
-- uses: josdagaro/tfsuit/action@v3
+- uses: josdagaro/tfsuit/action@v1
   with:
     path: ./infra                # directory to scan (default '.')
     config: .github/tfsuit.hcl   # your rule file (default 'tfsuit.hcl')
