@@ -1,12 +1,14 @@
 # tfsuit
 
+[![Release](https://github.com/josdagaro/tfsuit/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/josdagaro/tfsuit/actions/workflows/release.yml) [![tfsuit CI](https://github.com/josdagaro/tfsuit/actions/workflows/ci.yml/badge.svg)](https://github.com/josdagaro/tfsuit/actions/workflows/ci.yml) [![tfsuit scan](https://github.com/josdagaro/tfsuit/actions/workflows/tfsuit.yml/badge.svg)](https://github.com/josdagaro/tfsuit/actions/workflows/tfsuit.yml)
+
 > **Fast, opinionated Terraform naming linter & fixer – written in Go**
 
 `tfsuit` helps you enforce consistent, organisation‑wide naming rules for every Terraform variable, output, module and resource – in your editor, in CI and in your pull‑requests.
 
 ---
 
-## ✨ Key features (v3)
+## ✨ Key features (v1)
 
 |                        | Feature                                                  | Notes                                         |
 | ---------------------- | -------------------------------------------------------- | --------------------------------------------- |
@@ -132,6 +134,6 @@ Details in `.github/workflows/release.yml`.
 
 ---
 
-## 📜 License
+## 📜 License
 
-MIT License – see [LICENSE](LICENSE).
+MIT License – see [LICENSE](LICENSE).
