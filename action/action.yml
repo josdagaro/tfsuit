@@ -34,11 +34,10 @@ branding:
   color: "green"
 
 runs:
-  using: "docker"
-  image: "Dockerfile"
+  using: docker
+  image: Dockerfile
   args:
-    - ${{ inputs.debug }}
     - ${{ inputs.path }}
-    - ${{ inputs.config }}
-    - ${{ inputs.format }}
-    - ${{ inputs.fail }}
+    - --config=${{ inputs.config }}
+    - --format=${{ inputs.format }}
+    - ${{ inputs.fail == 'true' && '--fail' || '' }}
