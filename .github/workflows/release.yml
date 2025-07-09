@@ -40,6 +40,11 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+
+      - name: Fetch tags created by previous job
+        run: git fetch --force --tags origin 'refs/tags/*:refs/tags/*'
+
       - uses: actions/setup-go@v5
         with: {go-version: 1.24}
 
@@ -57,11 +62,9 @@ jobs:
       - uses: goreleaser/goreleaser-action@v5
         with:
           version: v2
-          args: release --clean --tag=${{ needs.tag.outputs.version }}
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKER_USERNAME: ${{ github.actor }}
-          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ------------------------------------------------------------------ #
