@@ -1,6 +1,6 @@
 # tfsuit
 
-&#x20;&#x20;
+[![Release](https://github.com/josdagaro/tfsuit/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/josdagaro/tfsuit/actions/workflows/release.yml) [![tfsuit CI](https://github.com/josdagaro/tfsuit/actions/workflows/ci.yml/badge.svg)](https://github.com/josdagaro/tfsuit/actions/workflows/ci.yml) [![tfsuit scan](https://github.com/josdagaro/tfsuit/actions/workflows/tfsuit.yml/badge.svg)](https://github.com/josdagaro/tfsuit/actions/workflows/tfsuit.yml)
 
 > **Fast, opinionated Terraform naming linter & fixer – written in Go**
 
