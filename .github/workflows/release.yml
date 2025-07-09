@@ -57,14 +57,14 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
 
       - uses: goreleaser/goreleaser-action@v5
         with:
           version: v2
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
 
   # ------------------------------------------------------------------ #
