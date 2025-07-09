@@ -34,18 +34,25 @@ jobs:
   goreleaser:
     needs: tag
     runs-on: ubuntu-latest
-    if: needs.tag.outputs.version != ''    # corre solo si se generó tag
+    if: needs.tag.outputs.version != ''
+    permissions:
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
-        with: {fetch-depth: 0}
-
       - uses: actions/setup-go@v5
         with: {go-version: 1.24}
 
-      - name: Run tests
-        run: |
+      - run: |
           go vet ./...
           go test ./...
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: goreleaser/goreleaser-action@v5
         with:
@@ -53,8 +60,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKER_USERNAME: ${{ github.repository_owner }}
-          DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ------------------------------------------------------------------ #
