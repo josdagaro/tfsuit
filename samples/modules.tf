@@ -5,6 +5,20 @@ module "ecs_foobar" {
     bar = "foo"
 }
 
+module "ecs_Foobar" {
+    source = "../"
+
+    foo = "bar"
+    bar = "foo"
+}
+
+                module "Ec-bar" {           
+    source = "../"
+
+    foo = "bar"
+    bar = "foo"
+}
+
     module "ecs_barfoo" {
     source = "../"
 
@@ -60,3 +74,11 @@ module ecs_bad {
     foo = "bar"
     bar = "foo"
 }
+
+
+module "eks_Foobar" {
+    source = "../"
+
+    foo = module.ecs_Foobar.id
+    bar = module.Ec-bar.id
+}   

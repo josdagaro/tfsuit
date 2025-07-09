@@ -1,0 +1,54 @@
+version: 2
+
+project_name: tfsuit
+
+before:
+  hooks:
+    - go test ./...
+
+builds:
+  - id: default
+    main: ./cmd/tfsuit
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - builds: [default]
+    format_overrides:
+      - goos: windows
+        format: zip
+
+brews:
+  - name: tfsuit
+    description: "Fast, opinionated Terraform naming linter & fixer"
+    homepage: "https://github.com/josdagaro/tfsuit"
+    test: "tfsuit --help"
+
+    repository:                 # ← objeto RepoRef
+      owner: josdagaro
+      name: homebrew-tfsuit     # tu repositorio-tap
+
+    commit_author:
+      name: goreleaser bot
+      email: bot@goreleaser.com
+
+dockers:
+  - dockerfile: Dockerfile.tfsuit       # el runtime
+    image_templates:
+      - ghcr.io/josdagaro/tfsuit:latest
+      - ghcr.io/josdagaro/tfsuit:{{ .Tag }}
+    use: buildx
+
+release:
+  name_template: "tfsuit {{ .Tag }}"
+  prerelease: auto
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^refactor:"

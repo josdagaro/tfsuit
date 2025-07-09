@@ -1,0 +1,87 @@
+# .github/workflows/tfsuit.yml
+name: tfsuit scan
+
+on:
+  pull_request:
+    paths: ["**/*.tf", "tfsuit.hcl"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+
+      - name: Build tfsuit
+        run: go build -o tfsuit ./cmd/tfsuit
+
+      - name: Run tfsuit → SARIF
+        id: tfsuit
+        continue-on-error: true          # ← no detiene el job
+        run: |
+            ./tfsuit --format sarif --fail ./ > tfsuit.sarif
+            echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF
+        if: always()                     # ← se ejecuta aunque el paso anterior “fallara”
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+            sarif_file: tfsuit.sarif
+
+      # Paso final: hace fallar el job si salieron violaciones
+      - name: Fail if tfsuit found issues
+        if: steps.tfsuit.outputs.exit_code != '0'
+        run: exit 1
+
+      - name: Comment summary (tfsuit)
+        if: always()                              # se ejecuta aunque el paso anterior fallara
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs   = require('fs');
+            const path = 'tfsuit.sarif';
+    
+            // Lee el SARIF generado
+            if (!fs.existsSync(path)) {
+              core.warning('No tfsuit.sarif file found');
+              return;
+            }
+            const sarif   = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const results = sarif.runs?.[0]?.results || [];
+            if (results.length === 0) {
+              core.info('No violations – nothing to comment');
+              return;
+            }
+    
+            // Construye el resumen (máx. 50 líneas)
+            const MAX = 50;
+            const lines = results.slice(0, MAX).map(r => {
+              const loc = r.locations[0].physicalLocation;
+              return `* **${r.message.text}** (${loc.artifactLocation.uri}:${loc.region.startLine})`;
+            });
+            if (results.length > MAX) lines.push(`…and **${results.length-MAX}** more`);
+    
+            const body = [
+              '## 🚨 tfsuit summary',
+              '',
+              `Found **${results.length}** naming violation${results.length>1?'s':''}:`,
+              '',
+              ...lines,
+              '',
+              '> _tfsuit automatically generated this summary_'
+            ].join('\n');
+    
+            // Evita duplicados: busca comentario anterior de este bot con mismo encabezado
+            const {owner, repo} = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.rest.issues.listComments({owner, repo, issue_number});
+            const previous = comments.data.find(c => c.user.login === 'github-actions[bot]' && c.body.startsWith('## 🚨 tfsuit summary'));
+    
+            if (previous) {
+              await github.rest.issues.updateComment({owner, repo, comment_id: previous.id, body});
+            } else {
+              await github.rest.issues.createComment({owner, repo, issue_number, body});
+            }

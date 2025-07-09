@@ -1,0 +1,3 @@
+FROM scratch
+COPY tfsuit /usr/local/bin/tfsuit
+ENTRYPOINT ["/usr/local/bin/tfsuit"]
