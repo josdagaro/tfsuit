@@ -87,26 +87,3 @@ jobs:
           git tag -fa "$MINOR" -m "Update tag $MINOR"
           git push origin "$MAJOR" --force
           git push origin "$MINOR" --force
-
-  # ------------------------------------------------------------------ #
-  changelog:
-    needs: [goreleaser, tag]          # ← incluye tag si usas su versión
-    runs-on: ubuntu-latest
-    if: needs.tag.result == 'success'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0              # ↓ token por defecto, sin línea extra
-
-      - name: Generate CHANGELOG
-        uses: heinrichreimer/github-changelog-generator-action@v2.3
-        with:
-          token: ${{ github.token }}  # puedes omitir, la action lo toma sola
-
-      - name: Commit & push CHANGELOG
-        run: |
-          git config --local user.name  github-actions
-          git config --local user.email github-actions@github.com
-          git add CHANGELOG.md
-          git commit -m "docs: update changelog" || true
-          git push
