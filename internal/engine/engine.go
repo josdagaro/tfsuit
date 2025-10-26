@@ -1,73 +1,92 @@
+// File: internal/engine/engine.go
 package engine
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"runtime"
-	"sort"
-	"strings"
-	"sync"
+    "encoding/json"
+    "fmt"
+    "io/ioutil" // si prefieres, cambia a os.ReadFile
+    "runtime"
+    "sort"
+    "strings"
+    "sync"
 
-	"github.com/josdagaro/tfsuit/internal/cache"
-	"github.com/josdagaro/tfsuit/internal/config"
-	"github.com/josdagaro/tfsuit/internal/model"
-	"github.com/josdagaro/tfsuit/internal/parser"
+    "github.com/josdagaro/tfsuit/internal/cache"
+    "github.com/josdagaro/tfsuit/internal/config"
+    "github.com/josdagaro/tfsuit/internal/model"
+    "github.com/josdagaro/tfsuit/internal/parser"
 )
 
 // Scan walks dir, parses files concurrently, leverages cache and returns findings.
 func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
-	files, err := parser.Discover(dir)
-	if err != nil {
-		return nil, err
-	}
+    files, err := parser.Discover(dir)
+    if err != nil {
+        return nil, err
+    }
 
-	c, _ := cache.Load(dir) // previous cache
+    // Load previous cache
+    c, _ := cache.Load(dir)
+    if c.PathHashes == nil {
+        c.PathHashes = map[string]string{}
+    }
 
-	jobs := make(chan string)
-	out := make(chan []model.Finding)
-	wg := sync.WaitGroup{}
+    // 🔒 protegeremos las escrituras al mapa del caché
+    var cacheMu sync.Mutex
 
-	workers := runtime.NumCPU() * 2
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for path := range jobs {
-				content, err := ioutil.ReadFile(path)
-				if err != nil {
-					continue
-				}
-				hash := cache.Hash(content)
+    // Channels and workers
+    jobs := make(chan string)
+    findingsCh := make(chan []model.Finding)
+    wg := sync.WaitGroup{}
 
-				res, err := parser.ParseFile(path, cfg)
-				if err == nil && len(res) > 0 {
-					out <- res
-				}
-				c.PathHashes[path] = hash
-			}
-		}()
-	}
+    workers := runtime.NumCPU() * 2
+    for i := 0; i < workers; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            for path := range jobs {
+                // Read file and hash
+                content, err := ioutil.ReadFile(path)
+                if err != nil {
+                    continue // skip error; opcional: log
+                }
+                hash := cache.Hash(content)
 
-	go func() {
-		for _, f := range files {
-			jobs <- f
-		}
-		close(jobs)
-	}()
+                // Parse file
+                res, err := parser.ParseFile(path, cfg)
+                if err == nil {
+                    findingsCh <- res
+                }
 
-	go func() {
-		wg.Wait()
-		close(out)
-	}()
+                // ✅ update cache entry (protegido)
+                cacheMu.Lock()
+                c.PathHashes[path] = hash
+                cacheMu.Unlock()
+            }
+        }()
+    }
 
-	var all []model.Finding
-	for batch := range out {
-		all = append(all, batch...)
-	}
+    // Feed jobs
+    go func() {
+        for _, f := range files {
+            jobs <- f
+        }
+        close(jobs)
+    }()
 
-	_ = c.Save(dir)
-	return all, nil
+    // Close findings when workers done
+    go func() {
+        wg.Wait()
+        close(findingsCh)
+    }()
+
+    var all []model.Finding
+    for batch := range findingsCh {
+        all = append(all, batch...)
+    }
+
+    // Save cache (single-threaded aquí)
+    _ = c.Save(dir)
+
+    return all, nil
 }
 
 // Format serialises findings according to the requested format.
