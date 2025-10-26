@@ -4,7 +4,7 @@ package engine
 import (
     "encoding/json"
     "fmt"
-    "io/ioutil" // si prefieres, cambia a os.ReadFile
+    "io/ioutil"
     "runtime"
     "sort"
     "strings"
