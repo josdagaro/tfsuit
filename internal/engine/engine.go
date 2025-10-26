@@ -2,98 +2,104 @@
 package engine
 
 import (
-    "encoding/json"
-    "fmt"
-    "io/ioutil"
-    "runtime"
-    "sort"
-    "strings"
-    "sync"
+	"encoding/json"
+	"fmt"
+	"os"
+	"runtime"
+	"sort"
+	"strings"
+	"sync"
 
-    "github.com/josdagaro/tfsuit/internal/cache"
-    "github.com/josdagaro/tfsuit/internal/config"
-    "github.com/josdagaro/tfsuit/internal/model"
-    "github.com/josdagaro/tfsuit/internal/parser"
+	"github.com/josdagaro/tfsuit/internal/cache"
+	"github.com/josdagaro/tfsuit/internal/config"
+	"github.com/josdagaro/tfsuit/internal/model"
+	"github.com/josdagaro/tfsuit/internal/parser"
 )
 
-// Scan walks dir, parses files concurrently, leverages cache and returns findings.
+// Scan recorre el directorio, parsea archivos .tf en paralelo, usa cache
+// y devuelve todos los hallazgos como []model.Finding.
 func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
-    files, err := parser.Discover(dir)
-    if err != nil {
-        return nil, err
-    }
+	// Descubre archivos Terraform
+	files, err := parser.Discover(dir)
+	if err != nil {
+		return nil, err
+	}
 
-    // Load previous cache
-    c, _ := cache.Load(dir)
-    if c.PathHashes == nil {
-        c.PathHashes = map[string]string{}
-    }
+	// Carga/asegura el cache
+	c, _ := cache.Load(dir)
+	if c.PathHashes == nil {
+		c.PathHashes = map[string]string{}
+	}
 
-    // 🔒 protegeremos las escrituras al mapa del caché
-    var cacheMu sync.Mutex
+	var cacheMu sync.Mutex
 
-    // Channels and workers
-    jobs := make(chan string)
-    findingsCh := make(chan []model.Finding)
-    wg := sync.WaitGroup{}
+	// Canal de trabajos y resultados
+	workers := runtime.GOMAXPROCS(0) // nº de CPU lógicas
+	if workers < 1 {
+		workers = 1
+	}
 
-    workers := runtime.NumCPU() * 2
-    for i := 0; i < workers; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            for path := range jobs {
-                // Read file and hash
-                content, err := ioutil.ReadFile(path)
-                if err != nil {
-                    continue // skip error; opcional: log
-                }
-                hash := cache.Hash(content)
+	jobs := make(chan string, workers*2)
+	findingsCh := make(chan []model.Finding, workers*2)
 
-                // Parse file
-                res, err := parser.ParseFile(path, cfg)
-                if err == nil {
-                    findingsCh <- res
-                }
+	var wg sync.WaitGroup
+	wg.Add(workers)
+	for i := 0; i < workers; i++ {
+		go func() {
+			defer wg.Done()
+			for path := range jobs {
+				// Lee contenido para hashear y cachear
+				content, err := os.ReadFile(path)
+				if err != nil {
+					// si un archivo falla, seguimos con el resto
+					continue
+				}
+				hash := cache.Hash(content)
 
-                // ✅ update cache entry (protegido)
-                cacheMu.Lock()
-                c.PathHashes[path] = hash
-                cacheMu.Unlock()
-            }
-        }()
-    }
+				// Parsea el archivo → hallazgos
+				res, err := parser.ParseFile(path, cfg)
+				if err == nil && len(res) > 0 {
+					findingsCh <- res
+				}
 
-    // Feed jobs
-    go func() {
-        for _, f := range files {
-            jobs <- f
-        }
-        close(jobs)
-    }()
+				// Actualiza cache protegido
+				cacheMu.Lock()
+				c.PathHashes[path] = hash
+				cacheMu.Unlock()
+			}
+		}()
+	}
 
-    // Close findings when workers done
-    go func() {
-        wg.Wait()
-        close(findingsCh)
-    }()
+	// Feeder de trabajos
+	go func() {
+		for _, f := range files {
+			jobs <- f
+		}
+		close(jobs)
+	}()
 
-    var all []model.Finding
-    for batch := range findingsCh {
-        all = append(all, batch...)
-    }
+	// Cerramos resultados cuando terminen los workers
+	go func() {
+		wg.Wait()
+		close(findingsCh)
+	}()
 
-    // Save cache (single-threaded aquí)
-    _ = c.Save(dir)
+	// Agregamos todo en un slice
+	var all []model.Finding
+	for batch := range findingsCh {
+		all = append(all, batch...)
+	}
 
-    return all, nil
+	// Guardamos cache (opcionalmente ignora error)
+	_ = c.Save(dir)
+
+	return all, nil
 }
 
-// Format serialises findings according to the requested format.
-// Modes: "pretty" (default), "json", "sarif".
+// Format serializa hallazgos en el formato solicitado.
+// Soporta: "pretty" (por defecto), "json" y "sarif".
 func Format(f []model.Finding, mode string) string {
 	switch mode {
-
 	case "json":
 		b, _ := json.MarshalIndent(f, "", "  ")
 		return string(b) + "\n"
@@ -123,7 +129,7 @@ func Format(f []model.Finding, mode string) string {
 	}
 }
 
-// buildSARIF constructs a minimal SARIF v2.1.0 document.
+// buildSARIF construye un SARIF 2.1.0 mínimo con los hallazgos.
 func buildSARIF(findings []model.Finding) string {
 	type (
 		artifactLocation struct {
@@ -161,7 +167,7 @@ func buildSARIF(findings []model.Finding) string {
 			"tool": map[string]interface{}{
 				"driver": driver{
 					Name:           "tfsuit",
-					Version:        "0.1.0",
+					Version:        "1.x", // opcional: inyecta versión real si la tienes
 					InformationURI: "https://github.com/josdagaro/tfsuit",
 				},
 			},

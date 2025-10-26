@@ -2,9 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
 
 	hcl "github.com/hashicorp/hcl/v2"
 	hclsyntax "github.com/hashicorp/hcl/v2/hclsyntax"
@@ -13,23 +11,8 @@ import (
 	"github.com/josdagaro/tfsuit/internal/model"
 )
 
-// Discover returns .tf files recursively
-func Discover(root string) ([]string, error) {
-	var list []string
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && filepath.Ext(path) == ".tf" {
-			list = append(list, path)
-		}
-		return nil
-	})
-	return list, err
-}
-
-// ParseFile extracts identifiers for variables, outputs, modules and resources,
-// evaluates them against naming rules, and returns violations.
+// ParseFile extrae identificadores (variables, outputs, módulos y recursos),
+// los evalúa contra las reglas y retorna las violaciones encontradas.
 func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -72,7 +55,7 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 			evalRule(&findings, path, block, "module", name, &cfg.Modules)
 
 		case "resource":
-			// resource blocks have two labels: TYPE and NAME
+			// resource tiene dos labels: TYPE y NAME; nos interesa NAME (2º)
 			if len(block.Labels) < 2 {
 				continue
 			}
@@ -84,7 +67,7 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 	return findings, nil
 }
 
-// evalRule checks a single identifier against its rule and appends a finding if needed.
+// evalRule valida un identificador con su regla y agrega un finding si no cumple.
 func evalRule(findings *[]model.Finding, path string, block *hclsyntax.Block, kind, name string, rule *config.Rule) {
 	if rule.IsIgnored(name) {
 		return
