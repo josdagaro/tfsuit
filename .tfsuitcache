@@ -1,0 +1,12 @@
+{
+  "path_hashes": {
+    "internal/testdata/simple/bad.tf": "cf695af438037ea6b83886fa8625e5b5963bc96660829c50d11b4e2ba19985ff",
+    "internal/testdata/simple/good.tf": "02f5ef69ac9029234b69f08b02689e489c9b36dd458f0069185ab2df243be9f6",
+    "samples/inputs.tf": "a7f70cdcb9196a942490393adf13871ea380eb579810fc6b6a1094aba845efda",
+    "samples/modules-2.tf": "e4fadc2cff6cee26997b4dfd28ac2d581b7ad3af9c9fa279223dc60c6c9e6afb",
+    "samples/modules.tf": "06aca0542d544db65ccc91e60cca8abe7861fbaeebc5dd58776d4d60bf7b0587",
+    "samples/outputs.tf": "122519202c07bef1edf15304763e265593aa928b1ef9e7b581d742d7e71ea860",
+    "samples/resources.tf": "c7eb5411ff51afa4bfcec7a20b9d35c0d1a105716b4d6e99aa0f2f8cbad4f467",
+    "samples/vars.tf": "d53114719115fb047b1423e1a9e3aefd45b304f98b59fd4bbd2a83667be40bbe"
+  }
+}

@@ -10,7 +10,7 @@ import (
 	"github.com/josdagaro/tfsuit/internal/engine"
 )
 
-// ← Goreleaser sobreescribe esto con -ldflags "-X main.version={{ .Version }}"
+// ← GoReleaser sobreescribe esto con -ldflags "-X main.version={{ .Version }}"
 var version = "dev"
 
 var (
@@ -18,6 +18,26 @@ var (
 	format  string
 	fail    bool
 )
+
+func runScan(target string) error {
+	cfg, err := config.Load(cfgFile)
+	if err != nil {
+		return err
+	}
+
+	findings, err := engine.Scan(target, cfg)
+	if err != nil {
+		return err
+	}
+
+	out := engine.Format(findings, format)
+	fmt.Print(out)
+
+	if fail && len(findings) > 0 {
+		return fmt.Errorf("%d naming violations", len(findings))
+	}
+	return nil
+}
 
 func rootCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -29,31 +49,21 @@ func rootCmd() *cobra.Command {
 			if len(args) == 1 {
 				target = args[0]
 			}
-			cfg, err := config.Load(cfgFile)
-			if err != nil {
-				return err
-			}
-
-			findings, err := engine.Scan(target, cfg)
-			if err != nil {
-				return err
-			}
-			output := engine.Format(findings, format)
-			fmt.Print(output)
-			if fail && len(findings) > 0 {
-				return fmt.Errorf("%d naming violations", len(findings))
-			}
-			return nil
+			return runScan(target)
 		},
 	}
 
-	// ---- versión (solo número) ----
+	// versión (solo número)
 	cmd.Version = version
-	cmd.SetVersionTemplate("{{.Version}}\n") // imprime solo la versión
+	cmd.SetVersionTemplate("{{.Version}}\n")
 
+	// flags compartidos
 	cmd.Flags().StringVarP(&cfgFile, "config", "c", "tfsuit.hcl", "configuration file (HCL or JSON)")
 	cmd.Flags().StringVarP(&format, "format", "f", "pretty", "output format: pretty|json|sarif")
 	cmd.Flags().BoolVar(&fail, "fail", false, "return non-zero exit if violations found")
+
+	// subcomandos
+	cmd.AddCommand(newScanCmd())
 	cmd.AddCommand(newFixCmd())
 
 	return cmd

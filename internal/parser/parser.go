@@ -11,8 +11,7 @@ import (
 	"github.com/josdagaro/tfsuit/internal/model"
 )
 
-// ParseFile extrae identificadores (variables, outputs, módulos y recursos),
-// los evalúa contra las reglas y retorna las violaciones encontradas.
+// ParseFile extrae identificadores y devuelve violaciones según las reglas.
 func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -55,7 +54,7 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 			evalRule(&findings, path, block, "module", name, &cfg.Modules)
 
 		case "resource":
-			// resource tiene dos labels: TYPE y NAME; nos interesa NAME (2º)
+			// resource tiene dos labels: TYPE y NAME
 			if len(block.Labels) < 2 {
 				continue
 			}
@@ -67,7 +66,7 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 	return findings, nil
 }
 
-// evalRule valida un identificador con su regla y agrega un finding si no cumple.
+// evalRule evalúa un identificador contra su regla y añade un finding si aplica.
 func evalRule(findings *[]model.Finding, path string, block *hclsyntax.Block, kind, name string, rule *config.Rule) {
 	if rule.IsIgnored(name) {
 		return
