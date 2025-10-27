@@ -10,6 +10,9 @@ import (
 	"github.com/josdagaro/tfsuit/internal/engine"
 )
 
+// ← Goreleaser sobreescribe esto con -ldflags "-X main.version={{ .Version }}"
+var version = "dev"
+
 var (
 	cfgFile string
 	format  string
@@ -43,6 +46,10 @@ func rootCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	// ---- versión (solo número) ----
+	cmd.Version = version
+	cmd.SetVersionTemplate("{{.Version}}\n") // imprime solo la versión
 
 	cmd.Flags().StringVarP(&cfgFile, "config", "c", "tfsuit.hcl", "configuration file (HCL or JSON)")
 	cmd.Flags().StringVarP(&format, "format", "f", "pretty", "output format: pretty|json|sarif")
