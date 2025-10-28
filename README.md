@@ -131,6 +131,23 @@ resources {
 
 ---
 
+## 🧰 Bootstrap config (init)
+
+Generate a starter config from your repository’s current labels and a few interactive choices:
+
+```bash
+tfsuit init .
+```
+
+Prompts include:
+- Allow uppercase / hyphens in labels
+- Optional module suffix pattern like `_[a-z]+`
+- Suggested `ignore_exact` and `ignore_regex` entries
+
+Writes `tfsuit.hcl` in the selected path (asks before overwriting).
+
+---
+
 ## 🔍 CLI usage
 
 ```bash
@@ -141,6 +158,8 @@ tfsuit scan [path]           # lint only
 tfsuit fix [path]            # auto‑fix labels
       --dry-run              # show diff
       --write                # apply changes
+
+tfsuit init [path]           # interactive config bootstrap (creates tfsuit.hcl)
 ```
 
 Example:
