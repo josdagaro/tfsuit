@@ -39,13 +39,20 @@ type rename struct{ Old, New string }
 /* -------------------------------------------------------------------------- */
 
 func Run(root string, cfg *config.Config, opt Options) error {
-	files, err := collectTfFiles(root)
-	if err != nil {
-		return err
-	}
+    files, err := collectTfFiles(root)
+    if err != nil {
+        return err
+    }
 
-	fileRen := map[string][]rename{}
-	globalRen := map[string]string{} // old → new
+    fileRen := map[string][]rename{}
+    globalRen := map[string]string{} // old → new
+    // métricas para el resumen final
+    var (
+        declRenames   int // cantidad de etiquetas a renombrar (declaraciones)
+        filesWithDecl int // archivos que contienen al menos un renombre de declaración
+        filesChanged  int // archivos que cambian (dry-run o write)
+        xrefHits      int // cantidad de referencias cruzadas reemplazadas
+    )
 
 	/* ---------- 1️⃣  primera pasada: detectar violaciones ---------------- */
 
@@ -93,10 +100,17 @@ func Run(root string, cfg *config.Config, opt Options) error {
 		}
 	}
 
-	if len(globalRen) == 0 {
-		fmt.Println("✅ No fixes needed")
-		return nil
-	}
+    if len(globalRen) == 0 {
+        // Alinea el comportamiento con la solicitud de un resumen al final
+        if opt.DryRun {
+            fmt.Println("✅ No fixes needed")
+            fmt.Println("Summary (dry-run): 0 labels to rename; 0 files would change; 0 cross-references.")
+        } else if opt.Write {
+            fmt.Println("✅ Nothing to change")
+            fmt.Println("Summary: 0 labels renamed; 0 files updated; 0 cross-references.")
+        }
+        return nil
+    }
 
 	/* ---------- 2️⃣  regex para refs cruzadas (.old  y  module.old) ------- */
 
@@ -114,47 +128,62 @@ func Run(root string, cfg *config.Config, opt Options) error {
 
 	/* ---------- 3️⃣  reescritura por archivo ----------------------------- */
 
-	for _, path := range files {
-		orig, _ := ioutil.ReadFile(path)
-		mod := orig
+    for _, path := range files {
+        orig, _ := ioutil.ReadFile(path)
+        mod := orig
 
-		// 3a. renombres locales
-		for _, rn := range fileRen[path] {
-			mod = bytes.ReplaceAll(mod, []byte(rn.Old), []byte(rn.New))
-		}
+        // 3a. renombres locales
+        if len(fileRen[path]) > 0 {
+            filesWithDecl++
+            declRenames += len(fileRen[path])
+        }
+        for _, rn := range fileRen[path] {
+            mod = bytes.ReplaceAll(mod, []byte(rn.Old), []byte(rn.New))
+        }
 
-		// 3b. referencias cruzadas
-		mod = crossRe.ReplaceAllFunc(mod, func(b []byte) []byte {
-			m := crossRe.FindSubmatch(b)
-			var old string
-			if len(m) >= 2 && len(m[1]) > 0 { // module.<old>
-				old = string(m[1])
-			} else if len(m) >= 3 && len(m[2]) > 0 { // .old
-				old = string(m[2])
-			}
-			if nn, ok := globalRen[old]; ok {
-				return bytes.Replace(b, []byte(old), []byte(nn), 1)
-			}
-			return b
-		})
+        // 3b. referencias cruzadas
+        mod = crossRe.ReplaceAllFunc(mod, func(b []byte) []byte {
+            m := crossRe.FindSubmatch(b)
+            var old string
+            if len(m) >= 2 && len(m[1]) > 0 { // module.<old>
+                old = string(m[1])
+            } else if len(m) >= 3 && len(m[2]) > 0 { // .old
+                old = string(m[2])
+            }
+            if nn, ok := globalRen[old]; ok {
+                xrefHits++
+                return bytes.Replace(b, []byte(old), []byte(nn), 1)
+            }
+            return b
+        })
 
-		if bytes.Equal(orig, mod) {
-			continue
-		}
+        if bytes.Equal(orig, mod) {
+            continue
+        }
 
-		if opt.DryRun {
-			fmt.Printf("\n--- %s\n", path)
-			diff := dmp.DiffMain(string(orig), string(mod), false)
-			fmt.Print(dmp.DiffPrettyText(diff))
-		} else if opt.Write {
-			if err := ioutil.WriteFile(path, mod, 0o644); err != nil {
-				return err
-			}
-			fmt.Printf("fixed %s\n", path)
-		}
-	}
+        if opt.DryRun {
+            fmt.Printf("\n--- %s\n", path)
+            diff := dmp.DiffMain(string(orig), string(mod), false)
+            fmt.Print(dmp.DiffPrettyText(diff))
+            filesChanged++
+        } else if opt.Write {
+            if err := ioutil.WriteFile(path, mod, 0o644); err != nil {
+                return err
+            }
+            fmt.Printf("fixed %s\n", path)
+            filesChanged++
+        }
+    }
 
-	return nil
+    // resumen final
+    if opt.DryRun {
+        fmt.Printf("\nSummary (dry-run): %d labels to rename across %d files; would update %d files; %d cross-references.\n",
+            declRenames, filesWithDecl, filesChanged, xrefHits)
+    } else if opt.Write {
+        fmt.Printf("\nSummary: renamed %d labels across %d files; updated %d files; %d cross-references.\n",
+            declRenames, filesWithDecl, filesChanged, xrefHits)
+    }
+    return nil
 }
 
 /* -------------------------------------------------------------------------- */
