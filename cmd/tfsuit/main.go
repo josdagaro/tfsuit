@@ -65,6 +65,7 @@ func rootCmd() *cobra.Command {
 	// subcomandos
 	cmd.AddCommand(newScanCmd())
 	cmd.AddCommand(newFixCmd())
+	cmd.AddCommand(newInitCmd())
 
 	return cmd
 }
