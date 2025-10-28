@@ -46,6 +46,13 @@ func Run(root string, cfg *config.Config, opt Options) error {
 
 	fileRen := map[string][]rename{}
 	globalRen := map[string]string{} // old → new
+	// métricas para el resumen final
+	var (
+		declRenames   int // cantidad de etiquetas a renombrar (declaraciones)
+		filesWithDecl int // archivos que contienen al menos un renombre de declaración
+		filesChanged  int // archivos que cambian (dry-run o write)
+		xrefHits      int // cantidad de referencias cruzadas reemplazadas
+	)
 
 	/* ---------- 1️⃣  primera pasada: detectar violaciones ---------------- */
 
@@ -94,7 +101,14 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	}
 
 	if len(globalRen) == 0 {
-		fmt.Println("✅ No fixes needed")
+		// Alinea el comportamiento con la solicitud de un resumen al final
+		if opt.DryRun {
+			fmt.Println("✅ No fixes needed")
+			fmt.Println("Summary (dry-run): 0 labels to rename; 0 files would change; 0 cross-references.")
+		} else if opt.Write {
+			fmt.Println("✅ Nothing to change")
+			fmt.Println("Summary: 0 labels renamed; 0 files updated; 0 cross-references.")
+		}
 		return nil
 	}
 
@@ -119,6 +133,10 @@ func Run(root string, cfg *config.Config, opt Options) error {
 		mod := orig
 
 		// 3a. renombres locales
+		if len(fileRen[path]) > 0 {
+			filesWithDecl++
+			declRenames += len(fileRen[path])
+		}
 		for _, rn := range fileRen[path] {
 			mod = bytes.ReplaceAll(mod, []byte(rn.Old), []byte(rn.New))
 		}
@@ -133,6 +151,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				old = string(m[2])
 			}
 			if nn, ok := globalRen[old]; ok {
+				xrefHits++
 				return bytes.Replace(b, []byte(old), []byte(nn), 1)
 			}
 			return b
@@ -146,14 +165,24 @@ func Run(root string, cfg *config.Config, opt Options) error {
 			fmt.Printf("\n--- %s\n", path)
 			diff := dmp.DiffMain(string(orig), string(mod), false)
 			fmt.Print(dmp.DiffPrettyText(diff))
+			filesChanged++
 		} else if opt.Write {
 			if err := ioutil.WriteFile(path, mod, 0o644); err != nil {
 				return err
 			}
 			fmt.Printf("fixed %s\n", path)
+			filesChanged++
 		}
 	}
 
+	// resumen final
+	if opt.DryRun {
+		fmt.Printf("\nSummary (dry-run): %d labels to rename across %d files; would update %d files; %d cross-references.\n",
+			declRenames, filesWithDecl, filesChanged, xrefHits)
+	} else if opt.Write {
+		fmt.Printf("\nSummary: renamed %d labels across %d files; updated %d files; %d cross-references.\n",
+			declRenames, filesWithDecl, filesChanged, xrefHits)
+	}
 	return nil
 }
 
