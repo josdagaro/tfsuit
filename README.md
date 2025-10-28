@@ -10,6 +10,15 @@
 
 ---
 
+## 🎯 Why tfsuit?
+
+- Enforce naming policies once and share them across repos, teams and CI
+- Catch inconsistent Terraform labels before they reach review or production
+- Auto‑fix issues while keeping cross‑references in sync (no manual renames)
+- Integrates with GitHub Actions, SARIF code scanning and editor tooling
+
+---
+
 ## ✨ Key features (v1)
 
 |                        | Feature                                                  | Notes                                         |
@@ -26,6 +35,26 @@
 
 ---
 
+## ⚡ Quick start
+
+```bash
+# 1. Install
+brew install josdagaro/tfsuit/tfsuit
+
+# 2. Drop a config file in your repo root
+cat <<'EOF' > tfsuit.hcl
+variables { pattern = "^[a-z0-9_]+$" }
+resources { pattern = "^[a-z0-9_]+$" }
+EOF
+
+# 3. Scan your Terraform project
+tfsuit scan ./infra
+```
+
+`tfsuit` exits non‑zero when violations are found, so you can wire it directly into CI.
+
+---
+
 ## 🚀 Installation
 
 ### Homebrew (macOS/Linux)
@@ -33,6 +62,19 @@
 ```bash
 brew tap josdagaro/tfsuit
 brew install tfsuit
+```
+
+Update to the latest tagged release:
+
+```bash
+brew update
+brew upgrade tfsuit
+```
+
+Validate your installation:
+
+```bash
+tfsuit --version
 ```
 
 ### Binary release
@@ -107,9 +149,36 @@ Example:
 ```bash
 # CI – fail if naming is wrong and upload SARIF
 mkdir results
-
 tfsuit scan ./infra --fail --format sarif > results/tfsuit.sarif
 ```
+
+---
+
+## 🧪 Examples
+
+Given a Terraform resource with a non‑conforming label:
+
+```hcl
+resource "aws_s3_bucket" "BadBucket" {
+  bucket = "example"
+}
+```
+
+Scan output (pretty format):
+
+```text
+$ tfsuit scan ./infra
+infra/main.tf:2:15  resource.aws_s3_bucket.BadBucket  label "BadBucket" does not match "^[a-z0-9_]+$"
+```
+
+Auto‑fix and review the change:
+
+```bash
+tfsuit fix ./infra --dry-run   # see proposed rename
+tfsuit fix ./infra --write     # apply updates to all references
+```
+
+The fixer rewrites references (modules, locals, outputs) to keep your code compiling.
 
 ---
 
@@ -125,6 +194,44 @@ The upcoming extension provides live diagnostics and `Quick Fix…` to rename v
 make test        # go vet + unit tests
 make snapshot    # local goreleaser build
 ```
+
+### Prerequisites
+
+- Go 1.21+ (matches the version in `go.mod`)
+- `make`
+- (optional) [GoReleaser](https://goreleaser.com) for snapshot packaging
+
+### Build & run locally
+
+```bash
+go build ./cmd/tfsuit    # compile binary into current directory
+./tfsuit --help          # inspect available commands
+
+go run ./cmd/tfsuit scan ./testdata/terraform
+```
+
+### Test before pushing
+
+```bash
+go test ./...
+make test                # wraps gofmt, go vet, go test
+```
+
+Run the fixer against fixtures to verify behaviour:
+
+```bash
+go run ./cmd/tfsuit fix ./internal/parser/testdata --dry-run
+```
+
+### GoReleaser dry runs
+
+Use snapshot releases to emulate the CI pipeline without publishing artifacts:
+
+```bash
+make snapshot            # goreleaser release --snapshot --clean
+```
+
+The command builds platform packages, Docker image and the Homebrew formula locally so you can spot issues before opening a release PR.
 
 ### Release pipeline
 
