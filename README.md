@@ -51,7 +51,7 @@ EOF
 tfsuit scan ./infra
 ```
 
-`tfsuit` exits non‑zero when violations are found, so you can wire it directly into CI.
+For CI enforcement, use the GitHub Action with `fail: true` to fail the job when violations are found.
 
 ---
 
@@ -93,7 +93,7 @@ docker run --rm -v "$PWD:/src" ghcr.io/josdagaro/tfsuit:latest scan /src
 Add to your workflow:
 
 ```yaml
-- uses: josdagaro/tfsuit/action@v1
+- uses: josdagaro/tfsuit/action@v3
   with:
     path: ./infra                # directory to scan (default '.')
     config: .github/tfsuit.hcl   # your rule file (default 'tfsuit.hcl')
@@ -137,7 +137,6 @@ resources {
 tfsuit scan [path]           # lint only
   -c, --config <file>        # config file
   -f, --format pretty|json|sarif
-      --fail                 # exit 1 on violations
 
 tfsuit fix [path]            # auto‑fix labels
       --dry-run              # show diff
@@ -147,9 +146,9 @@ tfsuit fix [path]            # auto‑fix labels
 Example:
 
 ```bash
-# CI – fail if naming is wrong and upload SARIF
+# CI – generate SARIF and upload to Code Scanning
 mkdir results
-tfsuit scan ./infra --fail --format sarif > results/tfsuit.sarif
+tfsuit scan ./infra --format sarif > results/tfsuit.sarif
 ```
 
 ---
@@ -191,14 +190,13 @@ The upcoming extension provides live diagnostics and `Quick Fix…` to rename v
 ## 🛠 Development
 
 ```bash
-make test        # go vet + unit tests
-make snapshot    # local goreleaser build
+go vet ./...      # static checks
+go test ./...     # unit tests
 ```
 
 ### Prerequisites
 
-- Go 1.21+ (matches the version in `go.mod`)
-- `make`
+- Go 1.24+ (matches `go.mod`)
 - (optional) [GoReleaser](https://goreleaser.com) for snapshot packaging
 
 ### Build & run locally
@@ -207,20 +205,20 @@ make snapshot    # local goreleaser build
 go build ./cmd/tfsuit    # compile binary into current directory
 ./tfsuit --help          # inspect available commands
 
-go run ./cmd/tfsuit scan ./testdata/terraform
+go run ./cmd/tfsuit scan ./samples
 ```
 
 ### Test before pushing
 
 ```bash
 go test ./...
-make test                # wraps gofmt, go vet, go test
+go vet ./...
 ```
 
 Run the fixer against fixtures to verify behaviour:
 
 ```bash
-go run ./cmd/tfsuit fix ./internal/parser/testdata --dry-run
+go run ./cmd/tfsuit fix ./internal/testdata/simple --dry-run
 ```
 
 ### GoReleaser dry runs
@@ -228,7 +226,7 @@ go run ./cmd/tfsuit fix ./internal/parser/testdata --dry-run
 Use snapshot releases to emulate the CI pipeline without publishing artifacts:
 
 ```bash
-make snapshot            # goreleaser release --snapshot --clean
+goreleaser release --snapshot --clean
 ```
 
 The command builds platform packages, Docker image and the Homebrew formula locally so you can spot issues before opening a release PR.
