@@ -25,12 +25,12 @@ func runScan(target string) error {
 		return err
 	}
 
-	findings, err := engine.Scan(target, cfg)
+	findings, stats, err := engine.Scan(target, cfg)
 	if err != nil {
 		return err
 	}
 
-	out := engine.Format(findings, format)
+	out := engine.Format(findings, format, &stats)
 	fmt.Print(out)
 
 	if fail && len(findings) > 0 {
