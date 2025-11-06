@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/josdagaro/tfsuit/internal/cache"
 	"github.com/josdagaro/tfsuit/internal/config"
@@ -15,12 +16,21 @@ import (
 	"github.com/josdagaro/tfsuit/internal/parser"
 )
 
-// Scan recorre el dir, parsea concurrentemente, usa caché y devuelve hallazgos.
-func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
+// ScanStats captura info del escaneo para mejorar mensajes en modo "pretty".
+type ScanStats struct {
+	Files    int
+	Duration time.Duration
+}
+
+// Scan recorre el dir, parsea concurrentemente, usa caché y devuelve hallazgos + estadísticas.
+func Scan(dir string, cfg *config.Config) ([]model.Finding, ScanStats, error) {
+	start := time.Now()
+
 	files, err := parser.Discover(dir)
 	if err != nil {
-		return nil, err
+		return nil, ScanStats{}, err
 	}
+	stats := ScanStats{Files: len(files)}
 
 	// Carga caché previo
 	c, _ := cache.Load(dir)
@@ -28,7 +38,7 @@ func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
 		c.PathHashes = map[string]string{}
 	}
 
-	// 🔒 proteje escrituras al mapa del caché (evita concurrent map writes)
+	// 🔒 protege escrituras al mapa del caché (evita concurrent map writes)
 	var cacheMu sync.Mutex
 
 	// Workers y canales
@@ -85,12 +95,13 @@ func Scan(dir string, cfg *config.Config) ([]model.Finding, error) {
 	// Guarda caché (una sola vez, ya en secuencia)
 	_ = c.Save(dir)
 
-	return all, nil
+	stats.Duration = time.Since(start)
+	return all, stats, nil
 }
 
 // Format serializa hallazgos según el formato.
 // Modos: "pretty" (default), "json", "sarif".
-func Format(f []model.Finding, mode string) string {
+func Format(f []model.Finding, mode string, stats *ScanStats) string {
 	switch mode {
 
 	case "json":
@@ -101,10 +112,21 @@ func Format(f []model.Finding, mode string) string {
 		return buildSARIF(f) + "\n"
 
 	default: // pretty
+		// Resumen cuando NO hay violaciones
 		if len(f) == 0 {
+			if stats != nil {
+				d := stats.Duration.Truncate(10 * time.Millisecond)
+				word := "files"
+				if stats.Files == 1 {
+					word = "file"
+				}
+				return fmt.Sprintf("✅ No naming violations found — scanned %d %s in %s\n",
+					stats.Files, word, d)
+			}
 			return "✅ No naming violations found\n"
 		}
 
+		// Ordenamos para una salida estable
 		sort.Slice(f, func(i, j int) bool {
 			if f[i].File == f[j].File {
 				return f[i].Line < f[j].Line
@@ -112,12 +134,51 @@ func Format(f []model.Finding, mode string) string {
 			return f[i].File < f[j].File
 		})
 
+		// Contadores para el resumen
+		byKind := map[string]int{}
+		fileSet := map[string]struct{}{}
+		for _, v := range f {
+			byKind[v.Kind]++
+			fileSet[v.File] = struct{}{}
+		}
+
+		// Impresión de violaciones
 		var sb strings.Builder
 		sb.WriteString("\n❌ Violations:\n")
 		for _, v := range f {
 			fmt.Fprintf(&sb, "%s:%d [%s] %s\n",
 				v.File, v.Line, v.Kind, v.Message)
 		}
+
+		// Resumen al final (cuando SÍ hay violaciones)
+		if stats != nil {
+			d := stats.Duration.Truncate(10 * time.Millisecond)
+
+			// Desglose por tipo en orden legible
+			order := []string{"variable", "output", "module", "resource"}
+			var parts []string
+			for _, k := range order {
+				if n := byKind[k]; n > 0 {
+					name := k
+					if n != 1 {
+						name += "s"
+					}
+					parts = append(parts, fmt.Sprintf("%d %s", n, name))
+				}
+			}
+
+			sb.WriteString("\n— ")
+			sb.WriteString(fmt.Sprintf("%d violations", len(f)))
+			if len(parts) > 0 {
+				sb.WriteString(fmt.Sprintf(" (%s)", strings.Join(parts, ", ")))
+			}
+			sb.WriteString(fmt.Sprintf(" across %d/%d files in %s\n",
+				len(fileSet), stats.Files, d))
+		} else {
+			// Sin stats disponibles
+			sb.WriteString(fmt.Sprintf("\n— %d violations\n", len(f)))
+		}
+
 		return sb.String()
 	}
 }
@@ -160,7 +221,7 @@ func buildSARIF(findings []model.Finding) string {
 			"tool": map[string]interface{}{
 				"driver": driver{
 					Name:           "tfsuit",
-					Version:        "1.x", // opcional: puedes inyectar versión aquí si lo deseas
+					Version:        "1.x", // opcional: puedes inyectar versión real si lo deseas
 					InformationURI: "https://github.com/josdagaro/tfsuit",
 				},
 			},
