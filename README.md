@@ -154,7 +154,7 @@ module "network" {
   }
 }
 
-`tfsuit fix` también inserta automáticamente el provider más usado cuando falta (por ejemplo `provider = aws.primary` o el bloque `providers = { aws = aws.primary }`). Si no existe ningún provider definido en tu código, el comando falla y crea un `providers.tf` con un comentario para que declares uno con alias antes de volver a ejecutar el fixer.
+`tfsuit fix` also injects the most-used provider when one is missing (for example `provider = aws.primary` or a `providers = { aws = aws.primary }` block). If no provider is defined anywhere, the command fails and creates a `providers.tf` with a comment reminding you to declare at least one aliased provider before retrying. The fixer understands the `providers = { ... }` mappings inside `module` blocks, so it can propagate aliases down to nested submodules even when the actual configurations live only at the root.
 ```
 
 ---
@@ -266,6 +266,7 @@ Run the fixer against fixtures to verify behaviour:
 
 ```bash
 go run ./cmd/tfsuit fix ./samples/simple --dry-run
+go run ./cmd/tfsuit fix ./samples/provider-chain --dry-run
 ```
 
 ### GoReleaser dry runs

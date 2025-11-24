@@ -174,6 +174,90 @@ module "demo" {
 	}
 }
 
+func TestFixPropagatesProvidersThroughModules(t *testing.T) {
+	tmp := t.TempDir()
+
+	cfgContent := `
+variables {
+  pattern = ".*"
+}
+
+outputs {
+  pattern = ".*"
+}
+
+modules {
+  pattern = ".*"
+}
+
+resources {
+  pattern = ".*"
+  require_provider = true
+}
+`
+	writeFile(t, filepath.Join(tmp, "tfsuit.hcl"), cfgContent)
+
+	providersTf := `
+provider "aws" {
+  alias  = "virginia"
+  region = "us-east-1"
+}
+`
+	writeFile(t, filepath.Join(tmp, "providers.tf"), providersTf)
+
+	mainTf := `
+module "backend" {
+  source = "./modules/backend"
+  providers = {
+    aws.virginia = aws.virginia
+  }
+}
+`
+	writeFile(t, filepath.Join(tmp, "main.tf"), mainTf)
+
+	moduleTf := `
+module "ecs" {
+  source = "./ecs"
+  providers = {
+    aws.virginia = aws.virginia
+  }
+}
+
+resource "aws_s3_bucket" "logs" {}
+`
+	writeFile(t, filepath.Join(tmp, "modules/backend/main.tf"), moduleTf)
+
+	subModuleTf := `
+resource "aws_iam_role" "app" {}
+`
+	writeFile(t, filepath.Join(tmp, "modules/backend/ecs/main.tf"), subModuleTf)
+
+	cfg, err := config.Load(filepath.Join(tmp, "tfsuit.hcl"))
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
+	if err := rewrite.Run(tmp, cfg, rewrite.Options{Write: true}); err != nil {
+		t.Fatalf("fix nested modules: %v", err)
+	}
+
+	outBackend, err := os.ReadFile(filepath.Join(tmp, "modules/backend/main.tf"))
+	if err != nil {
+		t.Fatalf("read backend: %v", err)
+	}
+	if !strings.Contains(string(outBackend), `provider = aws.virginia`) {
+		t.Fatalf("backend resource missing provider:\n%s", outBackend)
+	}
+
+	outSub, err := os.ReadFile(filepath.Join(tmp, "modules/backend/ecs/main.tf"))
+	if err != nil {
+		t.Fatalf("read submodule: %v", err)
+	}
+	if !strings.Contains(string(outSub), `provider = aws.virginia`) {
+		t.Fatalf("submodule resource missing provider:\n%s", outSub)
+	}
+}
+
 // utilidades -----------------------------------------------------------------
 
 func copyDir(src, dst string) error {
@@ -189,4 +273,14 @@ func copyDir(src, dst string) error {
 		b, _ := os.ReadFile(p)
 		return os.WriteFile(target, b, info.Mode())
 	})
+}
+
+func writeFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", filepath.Dir(path), err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write %s: %v", path, err)
+	}
 }

@@ -64,3 +64,5 @@ samples/**
 !samples/.gitignore
 !samples/simple
 !samples/simple/**
+!samples/provider-chain
+!samples/provider-chain/**

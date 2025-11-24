@@ -41,19 +41,33 @@ type providerInsertion struct {
 	Payload string
 }
 
-var errNoProviderDefinitions = errors.New("no provider configurations defined")
+type providerSelection struct {
+	Alias string
+	Type  string
+}
+
+var (
+	errNoProviderDefinitions = errors.New("no provider configurations defined")
+	errNoProviderInScope     = errors.New("no provider available in scope")
+)
 
 /* -------------------------------------------------------------------------- */
 /* Entry point                                                                */
 /* -------------------------------------------------------------------------- */
 
 func Run(root string, cfg *config.Config, opt Options) error {
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return err
+	}
+	root = absRoot
+
 	files, err := collectTfFiles(root)
 	if err != nil {
 		return err
 	}
 
-	provCatalog, err := analyzeProviders(files)
+	resolver, err := buildProviderResolver(root, files)
 	if err != nil {
 		return err
 	}
@@ -121,7 +135,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				}
 
 				if requireProvider["module"] && needsProviderAssignment(b, "module") {
-					if err := scheduleProviderFix(path, src, b, "module", "", provCatalog, providerFixes, root); err != nil {
+					if err := scheduleProviderFix(path, src, b, "module", "", resolver, providerFixes, root); err != nil {
 						return err
 					}
 					hasProviderFixes = true
@@ -140,7 +154,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 
 				if requireProvider["resource"] && needsProviderAssignment(b, "resource") {
 					pref := providerTypeFromBlock(b)
-					if err := scheduleProviderFix(path, src, b, "resource", pref, provCatalog, providerFixes, root); err != nil {
+					if err := scheduleProviderFix(path, src, b, "resource", pref, resolver, providerFixes, root); err != nil {
 						return err
 					}
 					hasProviderFixes = true
@@ -162,7 +176,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 
 				if requireProvider["data"] && needsProviderAssignment(b, "data") {
 					pref := providerTypeFromBlock(b)
-					if err := scheduleProviderFix(path, src, b, "data", pref, provCatalog, providerFixes, root); err != nil {
+					if err := scheduleProviderFix(path, src, b, "data", pref, resolver, providerFixes, root); err != nil {
 						return err
 					}
 					hasProviderFixes = true
@@ -333,8 +347,9 @@ func providerTypeFromBlock(block *hclsyntax.Block) string {
 	return raw
 }
 
-func scheduleProviderFix(path string, src []byte, block *hclsyntax.Block, kind, preferredType string, catalog *providerCatalog, providerFixes map[string][]providerInsertion, root string) error {
-	cfg, err := catalog.choose(preferredType)
+func scheduleProviderFix(path string, src []byte, block *hclsyntax.Block, kind, preferredType string, resolver *providerResolver, providerFixes map[string][]providerInsertion, root string) error {
+	dir := filepath.Dir(path)
+	sel, err := resolver.resolve(dir, preferredType)
 	if err != nil {
 		if errors.Is(err, errNoProviderDefinitions) {
 			if err := ensureProvidersFile(root); err != nil {
@@ -346,7 +361,7 @@ func scheduleProviderFix(path string, src []byte, block *hclsyntax.Block, kind, 
 	}
 	offset := block.CloseBraceRange.Start.Byte
 	indent := indentAt(src, offset)
-	payload := renderProviderPayload(kind, indent, cfg)
+	payload := renderProviderPayload(kind, indent, sel)
 	providerFixes[path] = append(providerFixes[path], providerInsertion{
 		Offset:  offset,
 		Payload: payload,
@@ -376,12 +391,16 @@ func indentAt(src []byte, offset int) string {
 	return string(src[start:j])
 }
 
-func renderProviderPayload(kind, indent string, cfg *providerConfig) string {
-	ref := cfg.Address
+func renderProviderPayload(kind, indent string, sel providerSelection) string {
+	ref := sel.Alias
 	switch kind {
 	case "module":
+		key := sel.Type
+		if key == "" {
+			key = sel.Alias
+		}
 		return fmt.Sprintf("\n%s  providers = {\n%s    %s = %s\n%s  }\n%s",
-			indent, indent, cfg.Type, ref, indent, indent)
+			indent, indent, key, ref, indent, indent)
 	case "resource", "data":
 		return fmt.Sprintf("\n%s  provider = %s\n%s", indent, ref, indent)
 	default:
@@ -421,26 +440,46 @@ func ensureProvidersFile(root string) error {
 	return os.WriteFile(path, []byte(content), 0o644)
 }
 
-type providerCatalog struct {
-	entries  []*providerConfig
-	byAddr   map[string]*providerConfig
-	defCount int
+type providerResolver struct {
+	root       string
+	scopes     map[string]*providerScope
+	aliasUsage map[string]int
+	moduleDirs []string
+	hasDefs    bool
 }
 
-type providerConfig struct {
-	Address string
+type providerScope struct {
+	Path    string
+	Aliases map[string]*providerAlias
+}
+
+type providerAlias struct {
+	Name    string
 	Type    string
-	Alias   string
-	Count   int
-	Order   int
 	Defined bool
 }
 
-func analyzeProviders(files []string) (*providerCatalog, error) {
-	catalog := &providerCatalog{
-		byAddr: map[string]*providerConfig{},
+func buildProviderResolver(root string, files []string) (*providerResolver, error) {
+	resolver := &providerResolver{
+		root:       root,
+		scopes:     map[string]*providerScope{},
+		aliasUsage: map[string]int{},
 	}
-	order := 0
+
+	type providerDef struct {
+		dir   string
+		alias string
+	}
+
+	type moduleCall struct {
+		parentDir string
+		childDir  string
+		providers map[string]string
+	}
+
+	var defs []providerDef
+	var calls []moduleCall
+	moduleDirSet := map[string]struct{}{}
 
 	for _, path := range files {
 		src, err := ioutil.ReadFile(path)
@@ -455,6 +494,8 @@ func analyzeProviders(files []string) (*providerCatalog, error) {
 		if !ok {
 			continue
 		}
+
+		dir := filepath.Dir(path)
 
 		for _, b := range body.Blocks {
 			switch b.Type {
@@ -471,128 +512,252 @@ func analyzeProviders(files []string) (*providerCatalog, error) {
 						}
 					}
 				}
-				catalog.recordDefinition(typ, alias, order)
-				order++
+				name := buildProviderAliasName(typ, alias)
+				defs = append(defs, providerDef{dir: dir, alias: name})
+				resolver.ensureAlias(name)
+				resolver.hasDefs = true
+
+			case "resource", "data":
+				if attr, ok := b.Body.Attributes["provider"]; ok {
+					if ref := providerRefFromExpr(attr.Expr); ref != "" {
+						resolver.recordUsage(ref)
+					}
+				}
+
 			case "module":
-				if attr, ok := b.Body.Attributes["providers"]; ok {
-					if obj, ok := attr.Expr.(*hclsyntax.ObjectConsExpr); ok {
-						for _, item := range obj.Items {
-							if ref := providerRefFromExpr(item.ValueExpr); ref != "" {
-								catalog.recordUsage(ref)
+				call := moduleCall{parentDir: dir}
+				if attr, ok := b.Body.Attributes["source"]; ok {
+					if val, diags := attr.Expr.Value(nil); diags == nil || !diags.HasErrors() {
+						if val.Type() == cty.String {
+							if child, ok := resolveModuleSource(root, dir, val.AsString()); ok {
+								call.childDir = child
+								moduleDirSet[child] = struct{}{}
 							}
 						}
 					}
 				}
-			case "resource", "data":
-				if attr, ok := b.Body.Attributes["provider"]; ok {
-					if ref := providerRefFromExpr(attr.Expr); ref != "" {
-						catalog.recordUsage(ref)
+
+				if attr, ok := b.Body.Attributes["providers"]; ok {
+					if obj, ok := attr.Expr.(*hclsyntax.ObjectConsExpr); ok {
+						call.providers = map[string]string{}
+						for _, item := range obj.Items {
+							key := objectKeyToString(item.KeyExpr)
+							if key == "" {
+								continue
+							}
+							if ref := providerRefFromExpr(item.ValueExpr); ref != "" {
+								call.providers[key] = ref
+								resolver.recordUsage(ref)
+								resolver.ensureAlias(key)
+							}
+						}
 					}
 				}
+				calls = append(calls, call)
 			}
 		}
 	}
 
-	return catalog, nil
+	resolver.moduleDirs = make([]string, 0, len(moduleDirSet))
+	for dir := range moduleDirSet {
+		resolver.moduleDirs = append(resolver.moduleDirs, dir)
+	}
+	sort.Slice(resolver.moduleDirs, func(i, j int) bool {
+		return len(resolver.moduleDirs[i]) > len(resolver.moduleDirs[j])
+	})
+
+	resolver.scopes[root] = newProviderScope(root)
+	for _, dir := range resolver.moduleDirs {
+		resolver.scopes[dir] = newProviderScope(dir)
+	}
+
+	for _, def := range defs {
+		scopePath := resolver.scopeForDir(def.dir)
+		resolver.scope(scopePath).addAlias(def.alias, true)
+	}
+
+	for _, call := range calls {
+		if call.childDir == "" {
+			continue
+		}
+		scope := resolver.scope(call.childDir)
+		for alias := range call.providers {
+			scope.addAlias(alias, false)
+			resolver.ensureAlias(alias)
+		}
+	}
+
+	return resolver, nil
 }
 
-func (c *providerCatalog) recordDefinition(typ, alias string, order int) {
-	addr := typ
-	if alias != "" {
-		addr = typ + "." + alias
-	}
-	entry := c.ensure(addr, typ, alias)
-	if !entry.Defined {
-		entry.Defined = true
-		entry.Order = order
-		c.defCount++
+func newProviderScope(path string) *providerScope {
+	return &providerScope{
+		Path:    path,
+		Aliases: map[string]*providerAlias{},
 	}
 }
 
-func (c *providerCatalog) recordUsage(ref string) {
-	addr, typ, alias := splitProviderRef(ref)
-	entry := c.ensure(addr, typ, alias)
-	entry.Count++
+func (r *providerResolver) ensureAlias(name string) {
+	if name == "" {
+		return
+	}
+	if _, ok := r.aliasUsage[name]; !ok {
+		r.aliasUsage[name] = 0
+	}
 }
 
-func (c *providerCatalog) ensure(addr, typ, alias string) *providerConfig {
-	if cfg, ok := c.byAddr[addr]; ok {
-		return cfg
+func (r *providerResolver) recordUsage(name string) {
+	if name == "" {
+		return
 	}
-	cfg := &providerConfig{
-		Address: addr,
-		Type:    typ,
-		Alias:   alias,
-		Order:   len(c.entries),
-	}
-	c.byAddr[addr] = cfg
-	c.entries = append(c.entries, cfg)
-	return cfg
+	r.aliasUsage[name]++
+	r.ensureAlias(name)
 }
 
-func (c *providerCatalog) choose(preferredType string) (*providerConfig, error) {
-	if c.defCount == 0 {
-		return nil, errNoProviderDefinitions
+func (r *providerResolver) scope(path string) *providerScope {
+	if s, ok := r.scopes[path]; ok {
+		return s
+	}
+	s := newProviderScope(path)
+	r.scopes[path] = s
+	return s
+}
+
+func (r *providerResolver) scopeForDir(dir string) string {
+	dir = filepath.Clean(dir)
+	for _, mod := range r.moduleDirs {
+		if dir == mod || strings.HasPrefix(dir, mod+string(os.PathSeparator)) {
+			return mod
+		}
+	}
+	return r.root
+}
+
+func (s *providerScope) addAlias(name string, defined bool) {
+	if name == "" {
+		return
+	}
+	if entry, ok := s.Aliases[name]; ok {
+		if defined {
+			entry.Defined = true
+		}
+		return
+	}
+	s.Aliases[name] = &providerAlias{
+		Name:    name,
+		Type:    providerTypeFromAlias(name),
+		Defined: defined,
+	}
+}
+
+func (r *providerResolver) resolve(dir, preferredType string) (providerSelection, error) {
+	scopePath := r.scopeForDir(dir)
+	scope := r.scope(scopePath)
+	if len(scope.Aliases) == 0 {
+		if r.hasDefs {
+			return providerSelection{}, fmt.Errorf("%w in %s", errNoProviderInScope, scopePath)
+		}
+		return providerSelection{}, errNoProviderDefinitions
 	}
 
-	candidates := c.filterByType(preferredType)
-	if len(candidates) == 0 && preferredType != "" {
-		candidates = c.filterByType("")
+	var candidates []*providerAlias
+	if preferredType != "" {
+		for _, alias := range scope.Aliases {
+			if alias.Type == preferredType {
+				candidates = append(candidates, alias)
+			}
+		}
 	}
 	if len(candidates) == 0 {
-		return nil, errNoProviderDefinitions
-	}
-
-	withAlias := filterDefinedWithAlias(candidates)
-	if len(withAlias) > 0 {
-		candidates = withAlias
-	} else {
-		withDefinition := filterDefined(candidates)
-		if len(withDefinition) > 0 {
-			candidates = withDefinition
+		for _, alias := range scope.Aliases {
+			candidates = append(candidates, alias)
 		}
 	}
 
 	sort.SliceStable(candidates, func(i, j int) bool {
-		if candidates[i].Count == candidates[j].Count {
-			return candidates[i].Order < candidates[j].Order
+		ci := r.aliasUsage[candidates[i].Name]
+		cj := r.aliasUsage[candidates[j].Name]
+		if ci == cj {
+			return candidates[i].Name < candidates[j].Name
 		}
-		return candidates[i].Count > candidates[j].Count
+		return ci > cj
 	})
-	return candidates[0], nil
+
+	best := candidates[0]
+	return providerSelection{Alias: best.Name, Type: best.Type}, nil
 }
 
-func (c *providerCatalog) filterByType(typ string) []*providerConfig {
-	if typ == "" {
-		return append([]*providerConfig(nil), c.entries...)
+func buildProviderAliasName(typ, alias string) string {
+	if alias == "" {
+		return typ
 	}
-	var out []*providerConfig
-	for _, cfg := range c.entries {
-		if cfg.Type == typ {
-			out = append(out, cfg)
-		}
-	}
-	return out
+	return fmt.Sprintf("%s.%s", typ, alias)
 }
 
-func filterDefinedWithAlias(list []*providerConfig) []*providerConfig {
-	var out []*providerConfig
-	for _, cfg := range list {
-		if cfg.Defined && cfg.Alias != "" {
-			out = append(out, cfg)
-		}
+func providerTypeFromAlias(alias string) string {
+	if alias == "" {
+		return ""
 	}
-	return out
+	if idx := strings.IndexRune(alias, '.'); idx >= 0 {
+		return alias[:idx]
+	}
+	return alias
 }
 
-func filterDefined(list []*providerConfig) []*providerConfig {
-	var out []*providerConfig
-	for _, cfg := range list {
-		if cfg.Defined {
-			out = append(out, cfg)
+func resolveModuleSource(root, parentDir, source string) (string, bool) {
+	if source == "" {
+		return "", false
+	}
+
+	if strings.Contains(source, "::") {
+		return "", false
+	}
+
+	var target string
+	if filepath.IsAbs(source) {
+		target = source
+	} else {
+		target = filepath.Join(parentDir, source)
+	}
+	target = filepath.Clean(target)
+
+	if !strings.HasPrefix(target, root) {
+		return "", false
+	}
+	info, err := os.Stat(target)
+	if err != nil || !info.IsDir() {
+		return "", false
+	}
+	return target, true
+}
+
+func objectKeyToString(expr hclsyntax.Expression) string {
+	if expr == nil {
+		return ""
+	}
+	if ref := providerRefFromExpr(expr); ref != "" {
+		return ref
+	}
+	if val, diags := expr.Value(nil); diags == nil || !diags.HasErrors() {
+		if val.Type() == cty.String {
+			return val.AsString()
 		}
 	}
-	return out
+	switch e := expr.(type) {
+	case *hclsyntax.TemplateExpr:
+		if len(e.Parts) == 1 {
+			if wrap, ok := e.Parts[0].(*hclsyntax.TemplateWrapExpr); ok {
+				return objectKeyToString(wrap.Wrapped)
+			}
+		}
+	case *hclsyntax.ScopeTraversalExpr:
+		return traversalToProviderRef(e.Traversal)
+	case *hclsyntax.RelativeTraversalExpr:
+		return traversalToProviderRef(e.Traversal)
+	case *hclsyntax.ObjectConsKeyExpr:
+		return objectKeyToString(e.Wrapped)
+	}
+	return ""
 }
 
 func providerRefFromExpr(expr hclsyntax.Expression) string {
@@ -627,23 +792,6 @@ func traversalToProviderRef(tr hcl.Traversal) string {
 		return ""
 	}
 	return strings.Join(parts, ".")
-}
-
-func splitProviderRef(ref string) (addr, typ, alias string) {
-	parts := strings.Split(ref, ".")
-	if len(parts) == 0 {
-		return ref, ref, ""
-	}
-	typ = parts[0]
-	if len(parts) > 1 {
-		alias = parts[1]
-	}
-	if alias != "" {
-		addr = typ + "." + alias
-	} else {
-		addr = typ
-	}
-	return
 }
 
 func ScanFileAfterFix(path string, cfg *config.Config) ([]model.Finding, error) {
