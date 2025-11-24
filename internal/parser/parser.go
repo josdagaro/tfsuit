@@ -60,6 +60,13 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 			}
 			name := block.Labels[1]
 			evalRule(&findings, path, block, "resource", name, &cfg.Resources)
+
+		case "data":
+			if len(block.Labels) < 2 {
+				continue
+			}
+			name := block.Labels[1]
+			evalRule(&findings, path, block, "data", name, cfg.Data)
 		}
 	}
 
@@ -68,9 +75,25 @@ func ParseFile(path string, cfg *config.Config) ([]model.Finding, error) {
 
 // evalRule evalúa un identificador contra su regla y añade un finding si aplica.
 func evalRule(findings *[]model.Finding, path string, block *hclsyntax.Block, kind, name string, rule *config.Rule) {
+	if rule == nil {
+		return
+	}
 	if rule.IsIgnored(name) {
 		return
 	}
+
+	if rule.RequiresProvider() {
+		if !hasRequiredProvider(block, kind) {
+			*findings = append(*findings, model.Finding{
+				File:    path,
+				Line:    block.DefRange().Start.Line,
+				Kind:    kind,
+				Name:    name,
+				Message: providerMessage(kind, name),
+			})
+		}
+	}
+
 	if rule.Matches(name) {
 		return
 	}
@@ -81,4 +104,30 @@ func evalRule(findings *[]model.Finding, path string, block *hclsyntax.Block, ki
 		Name:    name,
 		Message: fmt.Sprintf("%s '%s' does not match pattern %s", kind, name, rule.Pattern),
 	})
+}
+
+func hasRequiredProvider(block *hclsyntax.Block, kind string) bool {
+	switch kind {
+	case "module":
+		attr, ok := block.Body.Attributes["providers"]
+		if !ok {
+			return false
+		}
+		if obj, ok := attr.Expr.(*hclsyntax.ObjectConsExpr); ok {
+			return len(obj.Items) > 0
+		}
+		return true
+
+	case "resource", "data":
+		_, ok := block.Body.Attributes["provider"]
+		return ok
+	}
+	return true
+}
+
+func providerMessage(kind, name string) string {
+	if kind == "module" {
+		return fmt.Sprintf("%s '%s' must declare at least one providers mapping", kind, name)
+	}
+	return fmt.Sprintf("%s '%s' must set a provider", kind, name)
 }

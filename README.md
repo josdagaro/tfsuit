@@ -120,14 +120,40 @@ outputs {
 modules {
   pattern      = "^[a-z0-9_]+(_[a-z]+)?$"
   ignore_regex = [".*experimental.*"]
+  require_provider = true
 }
 
 resources {
   pattern = "^[a-z0-9_]+$"
+  require_provider = false
+}
+
+data {
+  pattern = "^[a-z0-9_]+$"
+  require_provider = false
 }
 ```
 
 *Compile‑time validation* – invalid regex is caught at startup.
+
+Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, resources and data sources default to `false`. When enabled, `tfsuit` verifies:
+
+```hcl
+resource "aws_s3_bucket" "logs" {
+  provider = aws.primary
+}
+
+data "aws_s3_bucket" "selected" {
+  provider = aws.primary
+}
+
+module "network" {
+  source = "../network"
+  providers = {
+    aws = aws.primary
+  }
+}
+```
 
 ---
 
@@ -237,7 +263,7 @@ go vet ./...
 Run the fixer against fixtures to verify behaviour:
 
 ```bash
-go run ./cmd/tfsuit fix ./internal/testdata/simple --dry-run
+go run ./cmd/tfsuit fix ./samples/simple --dry-run
 ```
 
 ### GoReleaser dry runs

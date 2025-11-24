@@ -96,6 +96,18 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				newName := toSnake(old)
 				fileRen[path] = append(fileRen[path], rename{old, newName})
 				globalRen[old] = newName
+
+			case "data":
+				if len(b.Labels) < 2 {
+					continue
+				}
+				old := b.Labels[1]
+				if cfg.Data.IsIgnored(old) || cfg.Data.Matches(old) {
+					continue
+				}
+				newName := toSnake(old)
+				fileRen[path] = append(fileRen[path], rename{old, newName})
+				globalRen[old] = newName
 			}
 		}
 	}

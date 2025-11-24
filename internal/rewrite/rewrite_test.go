@@ -14,7 +14,7 @@ func TestFixWritesFiles(t *testing.T) {
 	tmp := t.TempDir()
 
 	// copia el fixture simple al tmpdir
-	src := filepath.FromSlash("../testdata/simple") // ← ubicación real
+	src := filepath.FromSlash("../../samples/simple") // ← ubicación real
 	if err := copyDir(src, tmp); err != nil {
 		t.Fatalf("copyDir: %v", err)
 	}

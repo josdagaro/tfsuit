@@ -155,7 +155,7 @@ func Format(f []model.Finding, mode string, stats *ScanStats) string {
 			d := stats.Duration.Truncate(10 * time.Millisecond)
 
 			// Desglose por tipo en orden legible
-			order := []string{"variable", "output", "module", "resource"}
+			order := []string{"variable", "output", "module", "data", "resource"}
 			var parts []string
 			for _, k := range order {
 				if n := byKind[k]; n > 0 {
