@@ -153,6 +153,8 @@ module "network" {
     aws = aws.primary
   }
 }
+
+`tfsuit fix` también inserta automáticamente el provider más usado cuando falta (por ejemplo `provider = aws.primary` o el bloque `providers = { aws = aws.primary }`). Si no existe ningún provider definido en tu código, el comando falla y crea un `providers.tf` con un comentario para que declares uno con alias antes de volver a ejecutar el fixer.
 ```
 
 ---
