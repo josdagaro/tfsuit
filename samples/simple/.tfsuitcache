@@ -1,0 +1,7 @@
+{
+  "path_hashes": {
+    "../../samples/simple/bad.tf": "0ac95c55848be850badf0f1dd5021722076520d85fd866b7b5c175312bf8d700",
+    "../../samples/simple/good.tf": "b158e263d628e94abad1601681698c20d788d6e023170393abd319ba01864e54",
+    "../../samples/simple/providers.tf": "7a5104bd79311073d457f7f5334264770a0dc4b89d4b1712de049a8bf19b0fcc"
+  }
+}

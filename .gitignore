@@ -62,3 +62,7 @@ tmp.sh
 samples/**
 !samples/.gitkeep
 !samples/.gitignore
+!samples/simple
+!samples/simple/**
+!samples/provider-chain
+!samples/provider-chain/**

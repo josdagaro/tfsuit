@@ -42,5 +42,6 @@ func newFixCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&write, "write", false, "write changes in-place")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview diff only (default true when --write is not supplied)")
+	cmd.Flags().StringVarP(&cfgFile, "config", "c", "tfsuit.hcl", "configuration file (HCL or JSON)")
 	return cmd
 }

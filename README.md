@@ -120,14 +120,42 @@ outputs {
 modules {
   pattern      = "^[a-z0-9_]+(_[a-z]+)?$"
   ignore_regex = [".*experimental.*"]
+  require_provider = true
 }
 
 resources {
   pattern = "^[a-z0-9_]+$"
+  require_provider = false
+}
+
+data {
+  pattern = "^[a-z0-9_]+$"
+  require_provider = false
 }
 ```
 
 *Compile‑time validation* – invalid regex is caught at startup.
+
+Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, while variables, outputs, resources and data sources default to `false`. Override those defaults in `tfsuit.hcl` when you want the fixer to enforce providers for additional block types. When enabled, `tfsuit` verifies:
+
+```hcl
+resource "aws_s3_bucket" "logs" {
+  provider = aws.primary
+}
+
+data "aws_s3_bucket" "selected" {
+  provider = aws.primary
+}
+
+module "network" {
+  source = "../network"
+  providers = {
+    aws = aws.primary
+  }
+}
+
+`tfsuit fix` also injects the most-used provider when one is missing (for example `provider = aws.primary` or a `providers = { aws = aws.primary }` block). If no provider is defined anywhere, the command fails and creates a `providers.tf` with a comment reminding you to declare at least one aliased provider before retrying. The fixer understands the `providers = { ... }` mappings inside `module` blocks, so it can propagate aliases down to nested submodules even when the actual configurations live only at the root.
+```
 
 ---
 
@@ -152,10 +180,11 @@ Writes `tfsuit.hcl` in the selected path (asks before overwriting).
 
 ```bash
 tfsuit scan [path]           # lint only
-  -c, --config <file>        # config file
+  -c, --config <file>        # config file (default tfsuit.hcl)
   -f, --format pretty|json|sarif
 
 tfsuit fix [path]            # auto‑fix labels
+      -c, --config <file>    # config file (default tfsuit.hcl)
       --dry-run              # show diff
       --write                # apply changes
 
@@ -237,7 +266,8 @@ go vet ./...
 Run the fixer against fixtures to verify behaviour:
 
 ```bash
-go run ./cmd/tfsuit fix ./internal/testdata/simple --dry-run
+go run ./cmd/tfsuit fix ./samples/simple --dry-run -c ./samples/simple/tfsuit.hcl
+go run ./cmd/tfsuit fix ./samples/provider-chain --dry-run -c ./samples/provider-chain/tfsuit.hcl
 ```
 
 ### GoReleaser dry runs
