@@ -349,6 +349,20 @@ func providerTypeFromBlock(block *hclsyntax.Block) string {
 
 func scheduleProviderFix(path string, src []byte, block *hclsyntax.Block, kind, preferredType string, resolver *providerResolver, providerFixes map[string][]providerInsertion, root string) error {
 	dir := filepath.Dir(path)
+	offset := block.CloseBraceRange.Start.Byte
+	indent := indentAt(src, offset)
+
+	if kind == "module" {
+		if aliases := resolver.requiredAliasesForModule(path, block); len(aliases) > 0 {
+			payload := renderModuleProvidersPayload(indent, aliases)
+			providerFixes[path] = append(providerFixes[path], providerInsertion{
+				Offset:  offset,
+				Payload: payload,
+			})
+			return nil
+		}
+	}
+
 	sel, err := resolver.resolve(dir, preferredType)
 	if err != nil {
 		if errors.Is(err, errNoProviderDefinitions) {
@@ -359,8 +373,6 @@ func scheduleProviderFix(path string, src []byte, block *hclsyntax.Block, kind, 
 		}
 		return err
 	}
-	offset := block.CloseBraceRange.Start.Byte
-	indent := indentAt(src, offset)
 	payload := renderProviderPayload(kind, indent, sel)
 	providerFixes[path] = append(providerFixes[path], providerInsertion{
 		Offset:  offset,
@@ -408,6 +420,25 @@ func renderProviderPayload(kind, indent string, sel providerSelection) string {
 	}
 }
 
+func renderModuleProvidersPayload(indent string, aliases []string) string {
+	var sb strings.Builder
+	sb.WriteString("\n")
+	sb.WriteString(indent)
+	sb.WriteString("  providers = {\n")
+	for _, alias := range aliases {
+		sb.WriteString(indent)
+		sb.WriteString("    ")
+		sb.WriteString(alias)
+		sb.WriteString(" = ")
+		sb.WriteString(alias)
+		sb.WriteString("\n")
+	}
+	sb.WriteString(indent)
+	sb.WriteString("  }\n")
+	sb.WriteString(indent)
+	return sb.String()
+}
+
 func insertText(src []byte, offset int, payload string) []byte {
 	if offset < 0 {
 		offset = 0
@@ -451,6 +482,7 @@ type providerResolver struct {
 type providerScope struct {
 	Path    string
 	Aliases map[string]*providerAlias
+	Allowed map[string]struct{}
 }
 
 type providerAlias struct {
@@ -554,6 +586,16 @@ func buildProviderResolver(root string, files []string) (*providerResolver, erro
 					}
 				}
 				calls = append(calls, call)
+
+			case "terraform":
+				aliases := terraformRequiredAliases(b)
+				if len(aliases) > 0 {
+					scope := resolver.scope(dir)
+					for _, alias := range aliases {
+						scope.allowAlias(alias)
+						resolver.ensureAlias(alias)
+					}
+				}
 			}
 		}
 	}
@@ -566,9 +608,13 @@ func buildProviderResolver(root string, files []string) (*providerResolver, erro
 		return len(resolver.moduleDirs[i]) > len(resolver.moduleDirs[j])
 	})
 
-	resolver.scopes[root] = newProviderScope(root)
+	if _, ok := resolver.scopes[root]; !ok {
+		resolver.scopes[root] = newProviderScope(root)
+	}
 	for _, dir := range resolver.moduleDirs {
-		resolver.scopes[dir] = newProviderScope(dir)
+		if _, ok := resolver.scopes[dir]; !ok {
+			resolver.scopes[dir] = newProviderScope(dir)
+		}
 	}
 
 	for _, def := range defs {
@@ -594,6 +640,7 @@ func newProviderScope(path string) *providerScope {
 	return &providerScope{
 		Path:    path,
 		Aliases: map[string]*providerAlias{},
+		Allowed: map[string]struct{}{},
 	}
 }
 
@@ -633,45 +680,51 @@ func (r *providerResolver) scopeForDir(dir string) string {
 	return r.root
 }
 
-func (s *providerScope) addAlias(name string, defined bool) {
+func (s *providerScope) addAlias(name string, defined bool) *providerAlias {
 	if name == "" {
-		return
+		return nil
 	}
 	if entry, ok := s.Aliases[name]; ok {
 		if defined {
 			entry.Defined = true
 		}
-		return
+		return entry
 	}
-	s.Aliases[name] = &providerAlias{
+	entry := &providerAlias{
 		Name:    name,
 		Type:    providerTypeFromAlias(name),
 		Defined: defined,
 	}
+	s.Aliases[name] = entry
+	return entry
+}
+
+func (s *providerScope) allowAlias(name string) {
+	if name == "" {
+		return
+	}
+	if s.Allowed == nil {
+		s.Allowed = map[string]struct{}{}
+	}
+	s.Allowed[name] = struct{}{}
+	s.addAlias(name, false)
 }
 
 func (r *providerResolver) resolve(dir, preferredType string) (providerSelection, error) {
 	scopePath := r.scopeForDir(dir)
 	scope := r.scope(scopePath)
-	if len(scope.Aliases) == 0 {
-		if r.hasDefs {
+
+	candidates := scope.collectAliases()
+	if len(candidates) == 0 {
+		if len(scope.Allowed) > 0 || r.hasDefs {
 			return providerSelection{}, fmt.Errorf("%w in %s", errNoProviderInScope, scopePath)
 		}
 		return providerSelection{}, errNoProviderDefinitions
 	}
 
-	var candidates []*providerAlias
-	if preferredType != "" {
-		for _, alias := range scope.Aliases {
-			if alias.Type == preferredType {
-				candidates = append(candidates, alias)
-			}
-		}
-	}
-	if len(candidates) == 0 {
-		for _, alias := range scope.Aliases {
-			candidates = append(candidates, alias)
-		}
+	filtered := filterAliasesByType(candidates, preferredType)
+	if len(filtered) > 0 {
+		candidates = filtered
 	}
 
 	sort.SliceStable(candidates, func(i, j int) bool {
@@ -692,6 +745,64 @@ func buildProviderAliasName(typ, alias string) string {
 		return typ
 	}
 	return fmt.Sprintf("%s.%s", typ, alias)
+}
+
+func (r *providerResolver) requiredAliasesForModule(filePath string, block *hclsyntax.Block) []string {
+	source, ok := moduleSourceString(block)
+	if !ok {
+		return nil
+	}
+	parentDir := filepath.Dir(filePath)
+	childDir, ok := resolveModuleSource(r.root, parentDir, source)
+	if !ok {
+		return nil
+	}
+	scope := r.scope(childDir)
+	return scope.allowedAliasList()
+}
+
+func (s *providerScope) collectAliases() []*providerAlias {
+	if len(s.Allowed) > 0 {
+		var out []*providerAlias
+		for name := range s.Allowed {
+			if alias, ok := s.Aliases[name]; ok {
+				out = append(out, alias)
+			}
+		}
+		return out
+	}
+	out := make([]*providerAlias, 0, len(s.Aliases))
+	for _, alias := range s.Aliases {
+		out = append(out, alias)
+	}
+	return out
+}
+
+func (s *providerScope) allowedAliasList() []string {
+	if len(s.Allowed) == 0 {
+		return nil
+	}
+	list := make([]string, 0, len(s.Allowed))
+	for name := range s.Allowed {
+		if _, ok := s.Aliases[name]; ok {
+			list = append(list, name)
+		}
+	}
+	sort.Strings(list)
+	return list
+}
+
+func filterAliasesByType(list []*providerAlias, typ string) []*providerAlias {
+	if typ == "" {
+		return nil
+	}
+	var out []*providerAlias
+	for _, alias := range list {
+		if alias.Type == typ {
+			out = append(out, alias)
+		}
+	}
+	return out
 }
 
 func providerTypeFromAlias(alias string) string {
@@ -758,6 +869,81 @@ func objectKeyToString(expr hclsyntax.Expression) string {
 		return objectKeyToString(e.Wrapped)
 	}
 	return ""
+}
+
+func terraformRequiredAliases(block *hclsyntax.Block) []string {
+	if block.Type != "terraform" {
+		return nil
+	}
+	var out []string
+	for _, child := range block.Body.Blocks {
+		if child.Type != "required_providers" {
+			continue
+		}
+		for _, attr := range child.Body.Attributes {
+			out = append(out, configurationAliases(attr)...)
+		}
+	}
+	return out
+}
+
+func configurationAliases(attr *hclsyntax.Attribute) []string {
+	obj, ok := attr.Expr.(*hclsyntax.ObjectConsExpr)
+	if !ok {
+		return nil
+	}
+	for _, item := range obj.Items {
+		key := objectKeyToString(item.KeyExpr)
+		if key != "configuration_aliases" {
+			continue
+		}
+		return aliasListFromExpr(item.ValueExpr)
+	}
+	return nil
+}
+
+func aliasListFromExpr(expr hclsyntax.Expression) []string {
+	switch v := expr.(type) {
+	case *hclsyntax.TupleConsExpr:
+		var list []string
+		for _, e := range v.Exprs {
+			if ref := providerRefFromExpr(e); ref != "" {
+				list = append(list, ref)
+				continue
+			}
+			if val, diags := e.Value(nil); diags == nil || !diags.HasErrors() {
+				if val.Type() == cty.String {
+					list = append(list, val.AsString())
+				}
+			}
+		}
+		return list
+	default:
+		if ref := providerRefFromExpr(expr); ref != "" {
+			return []string{ref}
+		}
+		if val, diags := expr.Value(nil); diags == nil || !diags.HasErrors() {
+			if val.Type() == cty.String {
+				return []string{val.AsString()}
+			}
+		}
+	}
+	return nil
+}
+
+func moduleSourceString(block *hclsyntax.Block) (string, bool) {
+	attr, ok := block.Body.Attributes["source"]
+	if !ok {
+		return "", false
+	}
+	val, diags := attr.Expr.Value(nil)
+	if diags != nil && diags.HasErrors() {
+		return "", false
+	}
+	if val.Type() != cty.String {
+		return "", false
+	}
+	return val.AsString(), true
 }
 
 func providerRefFromExpr(expr hclsyntax.Expression) string {

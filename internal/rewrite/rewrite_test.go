@@ -202,25 +202,32 @@ provider "aws" {
   alias  = "virginia"
   region = "us-east-1"
 }
+
+provider "aws" {
+  alias  = "ohio"
+  region = "us-east-2"
+}
 `
 	writeFile(t, filepath.Join(tmp, "providers.tf"), providersTf)
 
 	mainTf := `
 module "backend" {
   source = "./modules/backend"
-  providers = {
-    aws.virginia = aws.virginia
-  }
 }
 `
 	writeFile(t, filepath.Join(tmp, "main.tf"), mainTf)
 
 	moduleTf := `
+terraform {
+  required_providers {
+    aws = {
+      configuration_aliases = [aws.virginia, aws.ohio]
+    }
+  }
+}
+
 module "ecs" {
   source = "./ecs"
-  providers = {
-    aws.virginia = aws.virginia
-  }
 }
 
 resource "aws_s3_bucket" "logs" {}
@@ -228,6 +235,14 @@ resource "aws_s3_bucket" "logs" {}
 	writeFile(t, filepath.Join(tmp, "modules/backend/main.tf"), moduleTf)
 
 	subModuleTf := `
+terraform {
+  required_providers {
+    aws = {
+      configuration_aliases = [aws.ohio]
+    }
+  }
+}
+
 resource "aws_iam_role" "app" {}
 `
 	writeFile(t, filepath.Join(tmp, "modules/backend/ecs/main.tf"), subModuleTf)
@@ -241,11 +256,22 @@ resource "aws_iam_role" "app" {}
 		t.Fatalf("fix nested modules: %v", err)
 	}
 
+	rootMain, err := os.ReadFile(filepath.Join(tmp, "main.tf"))
+	if err != nil {
+		t.Fatalf("read root main: %v", err)
+	}
+	if !strings.Contains(string(rootMain), `aws.virginia = aws.virginia`) {
+		t.Fatalf("root providers missing virginia mapping:\n%s", rootMain)
+	}
+	if !strings.Contains(string(rootMain), `aws.ohio = aws.ohio`) {
+		t.Fatalf("root providers missing ohio mapping:\n%s", rootMain)
+	}
+
 	outBackend, err := os.ReadFile(filepath.Join(tmp, "modules/backend/main.tf"))
 	if err != nil {
 		t.Fatalf("read backend: %v", err)
 	}
-	if !strings.Contains(string(outBackend), `provider = aws.virginia`) {
+	if !strings.Contains(string(outBackend), `provider = aws.ohio`) {
 		t.Fatalf("backend resource missing provider:\n%s", outBackend)
 	}
 
@@ -253,7 +279,7 @@ resource "aws_iam_role" "app" {}
 	if err != nil {
 		t.Fatalf("read submodule: %v", err)
 	}
-	if !strings.Contains(string(outSub), `provider = aws.virginia`) {
+	if !strings.Contains(string(outSub), `provider = aws.ohio`) {
 		t.Fatalf("submodule resource missing provider:\n%s", outSub)
 	}
 }

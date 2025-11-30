@@ -1,6 +1,7 @@
 module "backend" {
-  source = "./modules/backend"
-  providers = {
-    aws = aws.virginia
-  }
+  source = "./components/backend"
+}
+
+module "networking" {
+  source = "./components/networking"
 }

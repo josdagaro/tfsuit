@@ -265,8 +265,8 @@ go vet ./...
 Run the fixer against fixtures to verify behaviour:
 
 ```bash
-go run ./cmd/tfsuit fix ./samples/simple --dry-run
-go run ./cmd/tfsuit fix ./samples/provider-chain --dry-run
+go run ./cmd/tfsuit fix ./samples/simple --dry-run -c ./samples/simple/tfsuit.hcl
+go run ./cmd/tfsuit fix ./samples/provider-chain --dry-run -c ./samples/provider-chain/tfsuit.hcl
 ```
 
 ### GoReleaser dry runs
