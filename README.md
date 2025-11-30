@@ -208,6 +208,11 @@ Example:
 # CI – generate SARIF and upload to Code Scanning
 mkdir results
 tfsuit scan ./infra --format sarif > results/tfsuit.sarif
+
+# Gradual fixes per kind
+tfsuit fix ./infra --dry-run --fix-types file          # only rename files
+tfsuit fix ./infra --dry-run --fix-types spacing       # enforce blank-line spacing
+tfsuit fix ./infra --dry-run --fix-types module,resource,data
 ```
 
 ---

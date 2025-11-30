@@ -19,8 +19,10 @@ jobs:
           go vet ./...
           test -z "$(gofmt -s -l . | tee /dev/stderr)"
 
-      - name: Unit tests
-        run: go test -v ./...
+      - name: Unit tests & coverage
+        run: |
+          go test -v ./... -coverprofile=coverage.out
+          go tool cover -func=coverage.out
 
       - name: Benchmarks (10 s máx)
         run: |
