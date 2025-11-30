@@ -136,7 +136,7 @@ data {
 
 *Compile‑time validation* – invalid regex is caught at startup.
 
-Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, resources and data sources default to `false`. When enabled, `tfsuit` verifies:
+Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, while variables, outputs, resources and data sources default to `false`. Override those defaults in `tfsuit.hcl` when you want the fixer to enforce providers for additional block types. When enabled, `tfsuit` verifies:
 
 ```hcl
 resource "aws_s3_bucket" "logs" {
@@ -180,10 +180,11 @@ Writes `tfsuit.hcl` in the selected path (asks before overwriting).
 
 ```bash
 tfsuit scan [path]           # lint only
-  -c, --config <file>        # config file
+  -c, --config <file>        # config file (default tfsuit.hcl)
   -f, --format pretty|json|sarif
 
 tfsuit fix [path]            # auto‑fix labels
+      -c, --config <file>    # config file (default tfsuit.hcl)
       --dry-run              # show diff
       --write                # apply changes
 
