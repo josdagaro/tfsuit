@@ -29,6 +29,7 @@ type Config struct {
 	Modules   Rule  `hcl:"modules,block" json:"modules"`
 	Resources Rule  `hcl:"resources,block" json:"resources"`
 	Data      *Rule `hcl:"data,block" json:"data,omitempty"`
+	Files     *Rule `hcl:"files,block" json:"files,omitempty"`
 }
 
 func (r *Rule) compile() error {
@@ -84,6 +85,11 @@ func (c *Config) compileRules() error {
 	} else if c.Data.Pattern == "" {
 		c.Data.Pattern = ".*"
 	}
+	if c.Files == nil {
+		c.Files = &Rule{Pattern: `.*\.tf$`}
+	} else if c.Files.Pattern == "" {
+		c.Files.Pattern = `.*\.tf$`
+	}
 
 	type ruleDef struct {
 		rule *Rule
@@ -96,6 +102,7 @@ func (c *Config) compileRules() error {
 		{rule: &c.Modules, def: true},
 		{rule: &c.Resources, def: false},
 		{rule: c.Data, def: false},
+		{rule: c.Files, def: false},
 	}
 
 	for _, rd := range rules {

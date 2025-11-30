@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -88,6 +89,12 @@ func Scan(dir string, cfg *config.Config) ([]model.Finding, ScanStats, error) {
 	}()
 
 	var all []model.Finding
+
+	if cfg.Files != nil {
+		if fileFindings := validateFilenames(files, cfg.Files); len(fileFindings) > 0 {
+			all = append(all, fileFindings...)
+		}
+	}
 	for batch := range findingsCh {
 		all = append(all, batch...)
 	}
@@ -97,6 +104,24 @@ func Scan(dir string, cfg *config.Config) ([]model.Finding, ScanStats, error) {
 
 	stats.Duration = time.Since(start)
 	return all, stats, nil
+}
+
+func validateFilenames(files []string, rule *config.Rule) []model.Finding {
+	var findings []model.Finding
+	for _, path := range files {
+		name := filepath.Base(path)
+		if rule.IsIgnored(name) || rule.Matches(name) {
+			continue
+		}
+		findings = append(findings, model.Finding{
+			File:    path,
+			Line:    1,
+			Kind:    "file",
+			Name:    name,
+			Message: fmt.Sprintf("file '%s' does not match pattern %s", name, rule.Pattern),
+		})
+	}
+	return findings
 }
 
 // Format serializa hallazgos según el formato.
@@ -155,7 +180,7 @@ func Format(f []model.Finding, mode string, stats *ScanStats) string {
 			d := stats.Duration.Truncate(10 * time.Millisecond)
 
 			// Desglose por tipo en orden legible
-			order := []string{"variable", "output", "module", "data", "resource"}
+			order := []string{"file", "variable", "output", "module", "data", "resource"}
 			var parts []string
 			for _, k := range order {
 				if n := byKind[k]; n > 0 {

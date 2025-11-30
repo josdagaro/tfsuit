@@ -35,6 +35,10 @@ modules {
 resources {
   pattern = "^[a-z]+$"
 }
+
+files {
+  pattern = "^[a-z0-9_]+\\.tf$"
+}
 `)
 	cfg, err := Load(path)
 	if err != nil {
@@ -49,11 +53,21 @@ resources {
 	if !cfg.Resources.Matches("abc") {
 		t.Fatalf("resource rule not compiled")
 	}
-	if cfg.Data == nil || cfg.Data.Pattern != ".*" {
-		t.Fatalf("data rule should be defaulted")
+	assertDefaultRule := func(rule *Rule, name string) {
+		if rule == nil || rule.Pattern != ".*" {
+			t.Fatalf("%s rule should be defaulted", name)
+		}
+		if rule.RequiresProvider() {
+			t.Fatalf("%s default require_provider should be false", name)
+		}
 	}
-	if cfg.Data.RequiresProvider() {
-		t.Fatalf("data default require_provider should be false")
+
+	assertDefaultRule(cfg.Data, "data")
+	if cfg.Files == nil || cfg.Files.Pattern != `^[a-z0-9_]+\.tf$` {
+		t.Fatalf("files pattern not loaded")
+	}
+	if cfg.Files.IsIgnored("foo.tf") {
+		t.Fatalf("files ignore default unexpected")
 	}
 }
 

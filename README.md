@@ -132,11 +132,16 @@ data {
   pattern = "^[a-z0-9_]+$"
   require_provider = false
 }
+
+files {
+  pattern = "^[a-z0-9_]+\\.tf$"
+  ignore_regex = ["locals.*\\.tf"]
+}
 ```
 
 *Compile‑time validation* – invalid regex is caught at startup.
 
-Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, while variables, outputs, resources and data sources default to `false`. Override those defaults in `tfsuit.hcl` when you want the fixer to enforce providers for additional block types. When enabled, `tfsuit` verifies:
+Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, while variables, outputs, resources and data sources default to `false`. Override those defaults in `tfsuit.hcl` when you want the fixer to enforce providers for additional block types, and use the `files` block to constrain every `.tf` filename (for example, enforcing snake_case only). When enabled, `tfsuit` verifies:
 
 ```hcl
 resource "aws_s3_bucket" "logs" {
