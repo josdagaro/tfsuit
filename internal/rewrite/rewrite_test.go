@@ -334,6 +334,100 @@ resources { pattern = ".*" }
 	}
 }
 
+func TestFixTypesFilter(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "providers.tf"), []byte(`provider "aws" { alias = "virginia" }`), 0o644); err != nil {
+		t.Fatalf("write providers: %v", err)
+	}
+
+	mainTf := `
+module "backend" {
+  source = "./backend"
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, "main.tf"), []byte(mainTf), 0o644); err != nil {
+		t.Fatalf("write main: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "backend"), 0o755); err != nil {
+		t.Fatalf("mkdir backend: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "backend/main.tf"), []byte(`
+terraform {
+  required_providers {
+    aws = {
+      configuration_aliases = [aws.virginia]
+    }
+  }
+}
+
+resource "aws_s3_bucket" "logs" {}
+`), 0o644); err != nil {
+		t.Fatalf("write backend main: %v", err)
+	}
+	badFile := filepath.Join(dir, "Bad-Name.tf")
+	if err := os.WriteFile(badFile, []byte(``), 0o644); err != nil {
+		t.Fatalf("write bad file: %v", err)
+	}
+
+	cfgContent := `
+files {
+  pattern = "^[a-z0-9_]+\\.tf$"
+}
+
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+
+resources {
+  pattern = ".*"
+  require_provider = true
+}
+
+data {
+  pattern = ".*"
+  require_provider = true
+}
+`
+	cfgPath := filepath.Join(dir, "tfsuit.hcl")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
+	// Only rename files
+	opts := rewrite.Options{Write: true, FixKinds: map[string]bool{"file": true}}
+	if err := rewrite.Run(dir, cfg, opts); err != nil {
+		t.Fatalf("fix files only: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "bad_name.tf")); err != nil {
+		t.Fatalf("expected renamed file: %v", err)
+	}
+	rootMain, _ := os.ReadFile(filepath.Join(dir, "main.tf"))
+	if strings.Contains(string(rootMain), "providers =") {
+		t.Fatalf("module providers should not be added when module kind is skipped")
+	}
+
+	// Now only modules/resources
+	opts = rewrite.Options{
+		Write: true,
+		FixKinds: map[string]bool{
+			"module":   true,
+			"resource": true,
+			"data":     true,
+		},
+	}
+	if err := rewrite.Run(dir, cfg, opts); err != nil {
+		t.Fatalf("fix modules/resources: %v", err)
+	}
+	rootMain, _ = os.ReadFile(filepath.Join(dir, "main.tf"))
+	if !strings.Contains(string(rootMain), "providers =") {
+		t.Fatalf("expected providers map after module fix:\n%s", rootMain)
+	}
+}
+
 // utilidades -----------------------------------------------------------------
 
 func copyDir(src, dst string) error {

@@ -25,7 +25,18 @@ import (
 /* Types & helpers                                                            */
 /* -------------------------------------------------------------------------- */
 
-type Options struct{ Write, DryRun bool }
+type Options struct {
+	Write    bool
+	DryRun   bool
+	FixKinds map[string]bool
+}
+
+func (opt Options) allows(kind string) bool {
+	if len(opt.FixKinds) == 0 {
+		return true
+	}
+	return opt.FixKinds[kind]
+}
 
 var nonAlnum = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
@@ -82,7 +93,9 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	providerFixes := map[string][]providerInsertion{}
 	var pendingFileRenames []fileRename
 	if cfg.Files != nil {
+	if cfg.Files != nil && opt.allows("file") {
 		pendingFileRenames = planFileRenames(files, cfg.Files)
+	}
 	}
 	// métricas para el resumen final
 	var (
@@ -119,6 +132,9 @@ func Run(root string, cfg *config.Config, opt Options) error {
 			switch b.Type {
 
 			case "variable", "output":
+				if !opt.allows(b.Type) {
+					continue
+				}
 				if len(b.Labels) == 0 {
 					continue
 				}
@@ -135,6 +151,9 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				globalRen[old] = newName
 
 			case "module":
+				if !opt.allows("module") {
+					continue
+				}
 				if len(b.Labels) == 0 {
 					continue
 				}
@@ -145,7 +164,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					globalRen[old] = newName
 				}
 
-				if requireProvider["module"] && needsProviderAssignment(b, "module") {
+				if requireProvider["module"] && opt.allows("module") && needsProviderAssignment(b, "module") {
 					if err := scheduleProviderFix(path, src, b, "module", "", resolver, providerFixes, root); err != nil {
 						return err
 					}
@@ -153,6 +172,9 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				}
 
 			case "resource":
+				if !opt.allows("resource") {
+					continue
+				}
 				if len(b.Labels) < 2 {
 					continue
 				}
@@ -163,7 +185,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					globalRen[old] = newName
 				}
 
-				if requireProvider["resource"] && needsProviderAssignment(b, "resource") {
+				if requireProvider["resource"] && opt.allows("resource") && needsProviderAssignment(b, "resource") {
 					pref := providerTypeFromBlock(b)
 					if err := scheduleProviderFix(path, src, b, "resource", pref, resolver, providerFixes, root); err != nil {
 						return err
@@ -172,6 +194,9 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				}
 
 			case "data":
+				if !opt.allows("data") {
+					continue
+				}
 				if len(b.Labels) < 2 {
 					continue
 				}
@@ -185,7 +210,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					globalRen[old] = newName
 				}
 
-				if requireProvider["data"] && needsProviderAssignment(b, "data") {
+				if requireProvider["data"] && opt.allows("data") && needsProviderAssignment(b, "data") {
 					pref := providerTypeFromBlock(b)
 					if err := scheduleProviderFix(path, src, b, "data", pref, resolver, providerFixes, root); err != nil {
 						return err

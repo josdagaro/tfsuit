@@ -190,6 +190,7 @@ tfsuit scan [path]           # lint only
 
 tfsuit fix [path]            # auto‑fix labels
       -c, --config <file>    # config file (default tfsuit.hcl)
+      --fix-types            # limit fixes to comma-separated kinds (file,variable,output,module,data,resource)
       --dry-run              # show diff
       --write                # apply changes
 

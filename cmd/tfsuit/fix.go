@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
 
 	"github.com/josdagaro/tfsuit/internal/config"
@@ -8,8 +11,9 @@ import (
 )
 
 var (
-	write  bool
-	dryRun bool
+	write     bool
+	dryRun    bool
+	fixTypes  string
 )
 
 func newFixCmd() *cobra.Command {
@@ -31,11 +35,16 @@ func newFixCmd() *cobra.Command {
 				dryRun = true
 			}
 
+			allowedKinds, err := parseFixTypesFlag(fixTypes)
+			if err != nil {
+				return err
+			}
+
 			cfg, err := config.Load(cfgFile)
 			if err != nil {
 				return err
 			}
-			opts := rewrite.Options{Write: write, DryRun: dryRun}
+			opts := rewrite.Options{Write: write, DryRun: dryRun, FixKinds: allowedKinds}
 			return rewrite.Run(target, cfg, opts)
 		},
 	}
@@ -43,5 +52,35 @@ func newFixCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&write, "write", false, "write changes in-place")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "preview diff only (default true when --write is not supplied)")
 	cmd.Flags().StringVarP(&cfgFile, "config", "c", "tfsuit.hcl", "configuration file (HCL or JSON)")
+	cmd.Flags().StringVar(&fixTypes, "fix-types", "", "comma-separated kinds to fix (file,variable,output,module,data,resource)")
 	return cmd
+}
+
+func parseFixTypesFlag(flag string) (map[string]bool, error) {
+	if flag == "" {
+		return nil, nil
+	}
+	valid := map[string]struct{}{
+		"file":     {},
+		"variable": {},
+		"output":   {},
+		"module":   {},
+		"data":     {},
+		"resource": {},
+	}
+	kinds := map[string]bool{}
+	for _, part := range strings.Split(flag, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if _, ok := valid[part]; !ok {
+			return nil, fmt.Errorf("unknown fix type %q (valid: file,variable,output,module,data,resource)", part)
+		}
+		kinds[part] = true
+	}
+	if len(kinds) == 0 {
+		return nil, fmt.Errorf("fix-types flag requires at least one type")
+	}
+	return kinds, nil
 }

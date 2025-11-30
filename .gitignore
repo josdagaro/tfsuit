@@ -68,3 +68,4 @@ samples/**
 !samples/provider-chain/**
 !samples/file-naming
 !samples/file-naming/**
+!samples/tfsuit.hcl
