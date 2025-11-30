@@ -66,3 +66,9 @@ samples/**
 !samples/simple/**
 !samples/provider-chain
 !samples/provider-chain/**
+!samples/file-naming
+!samples/file-naming/**
+!samples/block-spacing
+!samples/block-spacing/**
+samples/**/*.tfsuitcache
+!samples/tfsuit.hcl

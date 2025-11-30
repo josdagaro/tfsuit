@@ -132,11 +132,21 @@ data {
   pattern = "^[a-z0-9_]+$"
   require_provider = false
 }
+
+files {
+  pattern = "^[a-z0-9_]+\\.tf$"
+  ignore_regex = ["locals.*\\.tf"]
+}
+
+block_spacing {
+  min_blank_lines = 1
+  allow_compact = ["variable", "output"]
+}
 ```
 
 *Compile‑time validation* – invalid regex is caught at startup.
 
-Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, while variables, outputs, resources and data sources default to `false`. Override those defaults in `tfsuit.hcl` when you want the fixer to enforce providers for additional block types. When enabled, `tfsuit` verifies:
+Set `require_provider = true` in any block to ensure Terraform declarations explicitly pin a provider. Modules default to `require_provider = true`, while variables, outputs, resources and data sources default to `false`. Override those defaults in `tfsuit.hcl` when you want the fixer to enforce providers for additional block types, use the `files` block to constrain every `.tf` filename (for example, enforcing snake_case only), and configure `block_spacing` to require a minimum number of blank lines between blocks (with optional exemptions for compact single-line variables/outputs). When enabled, `tfsuit` verifies:
 
 ```hcl
 resource "aws_s3_bucket" "logs" {
@@ -154,7 +164,7 @@ module "network" {
   }
 }
 
-`tfsuit fix` also injects the most-used provider when one is missing (for example `provider = aws.primary` or a `providers = { aws = aws.primary }` block). If no provider is defined anywhere, the command fails and creates a `providers.tf` with a comment reminding you to declare at least one aliased provider before retrying. The fixer understands the `providers = { ... }` mappings inside `module` blocks, so it can propagate aliases down to nested submodules even when the actual configurations live only at the root.
+`tfsuit fix` also injects the most-used provider when one is missing (for example `provider = aws.primary` or a `providers = { aws = aws.primary }` block). If no provider is defined anywhere, the command fails and creates a `providers.tf` with a comment reminding you to declare at least one aliased provider before retrying. The fixer understands the `providers = { ... }` mappings inside `module` blocks, so it can propagate aliases down to nested submodules even when the actual configurations live only at the root, renames `.tf` files that break your `files` pattern (e.g. `Bad-Name.TF` → `bad_name.tf`), and inserts blank lines between blocks to satisfy `block_spacing`.
 ```
 
 ---
@@ -185,6 +195,7 @@ tfsuit scan [path]           # lint only
 
 tfsuit fix [path]            # auto‑fix labels
       -c, --config <file>    # config file (default tfsuit.hcl)
+      --fix-types            # limit fixes to comma-separated kinds (file,variable,output,module,data,resource,spacing)
       --dry-run              # show diff
       --write                # apply changes
 
@@ -197,6 +208,11 @@ Example:
 # CI – generate SARIF and upload to Code Scanning
 mkdir results
 tfsuit scan ./infra --format sarif > results/tfsuit.sarif
+
+# Gradual fixes per kind
+tfsuit fix ./infra --dry-run --fix-types file          # only rename files
+tfsuit fix ./infra --dry-run --fix-types spacing       # enforce blank-line spacing
+tfsuit fix ./infra --dry-run --fix-types module,resource,data
 ```
 
 ---

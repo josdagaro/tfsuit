@@ -25,7 +25,18 @@ import (
 /* Types & helpers                                                            */
 /* -------------------------------------------------------------------------- */
 
-type Options struct{ Write, DryRun bool }
+type Options struct {
+	Write    bool
+	DryRun   bool
+	FixKinds map[string]bool
+}
+
+func (opt Options) allows(kind string) bool {
+	if len(opt.FixKinds) == 0 {
+		return true
+	}
+	return opt.FixKinds[kind]
+}
 
 var nonAlnum = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 
@@ -44,6 +55,18 @@ type providerInsertion struct {
 type providerSelection struct {
 	Alias string
 	Type  string
+}
+
+type fileRename struct {
+	Old string
+	New string
+}
+
+type blockInfo struct {
+	Kind       string
+	StartLine  int
+	EndLine    int
+	SingleLine bool
 }
 
 var (
@@ -75,6 +98,11 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	fileRen := map[string][]rename{}
 	globalRen := map[string]string{} // old → new
 	providerFixes := map[string][]providerInsertion{}
+	blockInfosByPath := map[string][]blockInfo{}
+	var pendingFileRenames []fileRename
+	if cfg.Files != nil && opt.allows("file") {
+		pendingFileRenames = planFileRenames(files, cfg.Files)
+	}
 	// métricas para el resumen final
 	var (
 		declRenames         int // cantidad de etiquetas a renombrar (declaraciones)
@@ -82,8 +110,11 @@ func Run(root string, cfg *config.Config, opt Options) error {
 		filesChanged        int // archivos que cambian (dry-run o write)
 		xrefHits            int // cantidad de referencias cruzadas reemplazadas
 		providerAssignments int // cantidad de providers inyectados
+		fileRenameCount     int // cantidad de archivos renombrados
 	)
 	hasProviderFixes := false
+	hasFileRenames := len(pendingFileRenames) > 0
+	spacingEnabled := cfg.Spacing != nil && cfg.Spacing.EnabledValue()
 
 	requireProvider := map[string]bool{
 		"module":   cfg.Modules.RequiresProvider(),
@@ -103,11 +134,23 @@ func Run(root string, cfg *config.Config, opt Options) error {
 		}
 
 		body := file.Body.(*hclsyntax.Body)
+		var blockInfos []blockInfo
 		for _, b := range body.Blocks {
 
 			switch b.Type {
 
 			case "variable", "output":
+				info := blockInfo{
+					Kind:       b.Type,
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
+				if !opt.allows(b.Type) {
+					continue
+				}
 				if len(b.Labels) == 0 {
 					continue
 				}
@@ -124,6 +167,17 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				globalRen[old] = newName
 
 			case "module":
+				info := blockInfo{
+					Kind:       "module",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
+				if !opt.allows("module") {
+					continue
+				}
 				if len(b.Labels) == 0 {
 					continue
 				}
@@ -134,14 +188,31 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					globalRen[old] = newName
 				}
 
-				if requireProvider["module"] && needsProviderAssignment(b, "module") {
+				if requireProvider["module"] && opt.allows("module") && needsProviderAssignment(b, "module") {
 					if err := scheduleProviderFix(path, src, b, "module", "", resolver, providerFixes, root); err != nil {
 						return err
 					}
 					hasProviderFixes = true
 				}
+				blockInfos = append(blockInfos, blockInfo{
+					Kind:       "module",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				})
 
 			case "resource":
+				info := blockInfo{
+					Kind:       "resource",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
+				if !opt.allows("resource") {
+					continue
+				}
 				if len(b.Labels) < 2 {
 					continue
 				}
@@ -152,15 +223,32 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					globalRen[old] = newName
 				}
 
-				if requireProvider["resource"] && needsProviderAssignment(b, "resource") {
+				if requireProvider["resource"] && opt.allows("resource") && needsProviderAssignment(b, "resource") {
 					pref := providerTypeFromBlock(b)
 					if err := scheduleProviderFix(path, src, b, "resource", pref, resolver, providerFixes, root); err != nil {
 						return err
 					}
 					hasProviderFixes = true
 				}
+				blockInfos = append(blockInfos, blockInfo{
+					Kind:       "resource",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				})
 
 			case "data":
+				info := blockInfo{
+					Kind:       "data",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
+				if !opt.allows("data") {
+					continue
+				}
 				if len(b.Labels) < 2 {
 					continue
 				}
@@ -174,18 +262,25 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					globalRen[old] = newName
 				}
 
-				if requireProvider["data"] && needsProviderAssignment(b, "data") {
+				if requireProvider["data"] && opt.allows("data") && needsProviderAssignment(b, "data") {
 					pref := providerTypeFromBlock(b)
 					if err := scheduleProviderFix(path, src, b, "data", pref, resolver, providerFixes, root); err != nil {
 						return err
 					}
 					hasProviderFixes = true
 				}
+				blockInfos = append(blockInfos, blockInfo{
+					Kind:       "data",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				})
 			}
 		}
+		blockInfosByPath[path] = blockInfos
 	}
 
-	if len(globalRen) == 0 && !hasProviderFixes {
+	if len(globalRen) == 0 && !hasProviderFixes && !hasFileRenames && !spacingEnabled {
 		// Alinea el comportamiento con la solicitud de un resumen al final
 		if opt.DryRun {
 			fmt.Println("✅ No fixes needed")
@@ -256,6 +351,12 @@ func Run(root string, cfg *config.Config, opt Options) error {
 			})
 		}
 
+		if cfg.Spacing != nil && cfg.Spacing.EnabledValue() {
+			if updated, changed := enforceBlockSpacing(mod, blockInfosByPath[path], cfg.Spacing, opt); changed {
+				mod = updated
+			}
+		}
+
 		if bytes.Equal(orig, mod) {
 			continue
 		}
@@ -275,11 +376,30 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	}
 
 	// resumen final
+	if len(pendingFileRenames) > 0 {
+		for _, fr := range pendingFileRenames {
+			if opt.DryRun {
+				fmt.Printf("rename %s -> %s\n", fr.Old, fr.New)
+				fileRenameCount++
+			} else if opt.Write {
+				if err := os.Rename(fr.Old, fr.New); err != nil {
+					return err
+				}
+				fmt.Printf("renamed %s -> %s\n", fr.Old, fr.New)
+				fileRenameCount++
+				filesChanged++
+			}
+		}
+	}
+
 	if opt.DryRun {
 		fmt.Printf("\nSummary (dry-run): %d labels to rename across %d files; would update %d files; %d cross-references.",
 			declRenames, filesWithDecl, filesChanged, xrefHits)
 		if providerAssignments > 0 {
 			fmt.Printf(" Would add %d provider assignments.", providerAssignments)
+		}
+		if fileRenameCount > 0 {
+			fmt.Printf(" Would rename %d files.", fileRenameCount)
 		}
 		fmt.Printf("\n")
 	} else if opt.Write {
@@ -287,6 +407,9 @@ func Run(root string, cfg *config.Config, opt Options) error {
 			declRenames, filesWithDecl, filesChanged, xrefHits)
 		if providerAssignments > 0 {
 			fmt.Printf(" Added %d provider assignments.", providerAssignments)
+		}
+		if fileRenameCount > 0 {
+			fmt.Printf(" Renamed %d files.", fileRenameCount)
 		}
 		fmt.Printf("\n")
 	}
@@ -469,6 +592,140 @@ func ensureProvidersFile(root string) error {
 # }
 `
 	return os.WriteFile(path, []byte(content), 0o644)
+}
+
+func planFileRenames(files []string, rule *config.Rule) []fileRename {
+	if rule == nil {
+		return nil
+	}
+	existing := make(map[string]struct{}, len(files))
+	for _, path := range files {
+		existing[path] = struct{}{}
+	}
+
+	var renames []fileRename
+	for _, path := range files {
+		base := filepath.Base(path)
+		if rule.IsIgnored(base) || rule.Matches(base) {
+			continue
+		}
+		dir := filepath.Dir(path)
+		ext := strings.ToLower(filepath.Ext(base))
+		name := strings.TrimSuffix(base, filepath.Ext(base))
+		newName := toSnake(name)
+		if newName == "" {
+			newName = "file"
+		}
+		if ext == "" {
+			ext = ".tf"
+		}
+		candidate := filepath.Join(dir, newName+ext)
+		delete(existing, path)
+		suffix := 1
+		for {
+			if _, taken := existing[candidate]; !taken {
+				break
+			}
+			candidate = filepath.Join(dir, fmt.Sprintf("%s_%d%s", newName, suffix, ext))
+			suffix++
+		}
+		existing[candidate] = struct{}{}
+		if candidate == path {
+			continue
+		}
+		renames = append(renames, fileRename{Old: path, New: candidate})
+	}
+	return renames
+}
+
+func enforceBlockSpacing(content []byte, infos []blockInfo, spacing *config.BlockSpacing, opt Options) ([]byte, bool) {
+	if spacing == nil || !spacing.EnabledValue() || len(infos) < 2 || !opt.allows("spacing") {
+		return content, false
+	}
+	lines := splitLines(content)
+	var ops []struct {
+		insertLine int
+		count      int
+	}
+
+	for i := 0; i < len(infos)-1; i++ {
+		current := infos[i]
+		next := infos[i+1]
+		if spacing.AllowCompactKind(current.Kind) && spacing.AllowCompactKind(next.Kind) &&
+			current.SingleLine && next.SingleLine {
+			continue
+		}
+		actual := countBlankLinesBetween(lines, current.EndLine, next.StartLine)
+		if actual >= spacing.MinLines() {
+			continue
+		}
+		ops = append(ops, struct {
+			insertLine int
+			count      int
+		}{
+			insertLine: next.StartLine,
+			count:      spacing.MinLines() - actual,
+		})
+	}
+
+	if len(ops) == 0 {
+		return content, false
+	}
+
+	sort.Slice(ops, func(i, j int) bool {
+		return ops[i].insertLine > ops[j].insertLine
+	})
+
+	for _, op := range ops {
+		idx := op.insertLine - 1
+		if idx < 0 {
+			idx = 0
+		}
+		blanks := make([]string, op.count)
+		if idx >= len(lines) {
+			lines = append(lines, blanks...)
+			continue
+		}
+		lines = append(lines[:idx], append(blanks, lines[idx:]...)...)
+	}
+
+	result := strings.Join(lines, "\n")
+	if strings.HasSuffix(string(content), "\n") {
+		result += "\n"
+	}
+	return []byte(result), true
+}
+
+func splitLines(src []byte) []string {
+	var lines []string
+	start := 0
+	for i, b := range src {
+		if b == '\n' {
+			lines = append(lines, string(src[start:i]))
+			start = i + 1
+		}
+	}
+	if start <= len(src) {
+		lines = append(lines, string(src[start:]))
+	}
+	return lines
+}
+
+func countBlankLinesBetween(lines []string, endLine, nextStart int) int {
+	if nextStart <= endLine+1 {
+		return 0
+	}
+	blank := 0
+	for lineNum := endLine + 1; lineNum <= nextStart-1; lineNum++ {
+		idx := lineNum - 1
+		if idx < 0 || idx >= len(lines) {
+			continue
+		}
+		if strings.TrimSpace(lines[idx]) == "" {
+			blank++
+		}
+	}
+	return blank
 }
 
 type providerResolver struct {

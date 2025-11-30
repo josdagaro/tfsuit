@@ -3,6 +3,7 @@ package parser
 import (
 	"io/fs"
 	"path/filepath"
+	"strings"
 )
 
 // Discover devuelve todos los .tf recursivamente (ignora .terraform/)
@@ -16,7 +17,7 @@ func Discover(root string) ([]string, error) {
 		if d.IsDir() && d.Name() == ".terraform" {
 			return filepath.SkipDir
 		}
-		if !d.IsDir() && filepath.Ext(path) == ".tf" {
+		if !d.IsDir() && strings.EqualFold(filepath.Ext(path), ".tf") {
 			list = append(list, path)
 		}
 		return nil

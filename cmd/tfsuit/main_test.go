@@ -52,7 +52,7 @@ resources { pattern = "^[a-z0-9_]+$" }`), 0o644); err != nil {
 	}
 
 	cmd := newFixCmd()
-	cmd.SetArgs([]string{dir, "-c", cfgPath})
+	cmd.SetArgs([]string{dir, "-c", cfgPath, "--fix-types", "file"})
 	cmd.SetOut(&bytes.Buffer{})
 	cmd.SetErr(&bytes.Buffer{})
 	if err := cmd.Execute(); err != nil {
@@ -123,6 +123,22 @@ func TestInitCommand(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(dir, "tfsuit.hcl")); err != nil {
 		t.Fatalf("expected config file: %v", err)
+	}
+}
+
+func TestParseFixTypesFlag(t *testing.T) {
+	kinds, err := parseFixTypesFlag("file,module")
+	if err != nil {
+		t.Fatalf("parse fix types: %v", err)
+	}
+	if !kinds["file"] || !kinds["module"] || len(kinds) != 2 {
+		t.Fatalf("unexpected kinds map: %v", kinds)
+	}
+	if _, err := parseFixTypesFlag("unknown"); err == nil {
+		t.Fatalf("expected error for invalid kind")
+	}
+	if _, err := parseFixTypesFlag(","); err == nil {
+		t.Fatalf("expected error for empty kinds")
 	}
 }
 

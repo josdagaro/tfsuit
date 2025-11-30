@@ -1,0 +1,6 @@
+{
+  "path_hashes": {
+    "samples/file-naming/AnotherFile.TF": "7722dc25d74c2a60ab0835493b4aa1c79ef65211b3611cf735e65fc43a550edc",
+    "samples/file-naming/Bad-Name.tf": "17c10341a9b9b6afaaa64b3c2892ffb842a087960782f5f4e0472fb50621c598"
+  }
+}

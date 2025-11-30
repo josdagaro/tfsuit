@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -55,5 +56,44 @@ func TestFormatModes(t *testing.T) {
 	empty := Format(nil, "pretty", stats)
 	if !strings.Contains(empty, "No naming violations") {
 		t.Fatalf("pretty empty message missing: %s", empty)
+	}
+}
+
+func TestScanReportsFilePatternViolations(t *testing.T) {
+	dir := t.TempDir()
+	tfPath := filepath.Join(dir, "Bad-Name.tf")
+	if err := os.WriteFile(tfPath, []byte(`resource "aws_s3_bucket" "logs" {}`), 0o644); err != nil {
+		t.Fatalf("write tf: %v", err)
+	}
+
+	cfgContent := `
+files { pattern = "^[a-z0-9_]+\\.tf$" }
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+resources { pattern = ".*" }
+`
+	cfgPath := filepath.Join(dir, "tfsuit.hcl")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
+	findings, _, err := Scan(dir, cfg)
+	if err != nil {
+		t.Fatalf("Scan: %v", err)
+	}
+	found := false
+	for _, f := range findings {
+		if f.Kind == "file" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected file naming violation, got %v", findings)
 	}
 }

@@ -35,6 +35,10 @@ modules {
 resources {
   pattern = "^[a-z]+$"
 }
+
+files {
+  pattern = "^[a-z0-9_]+\\.tf$"
+}
 `)
 	cfg, err := Load(path)
 	if err != nil {
@@ -49,11 +53,30 @@ resources {
 	if !cfg.Resources.Matches("abc") {
 		t.Fatalf("resource rule not compiled")
 	}
-	if cfg.Data == nil || cfg.Data.Pattern != ".*" {
-		t.Fatalf("data rule should be defaulted")
+	assertDefaultRule := func(rule *Rule, name string) {
+		if rule == nil || rule.Pattern != ".*" {
+			t.Fatalf("%s rule should be defaulted", name)
+		}
+		if rule.RequiresProvider() {
+			t.Fatalf("%s default require_provider should be false", name)
+		}
 	}
-	if cfg.Data.RequiresProvider() {
-		t.Fatalf("data default require_provider should be false")
+
+	assertDefaultRule(cfg.Data, "data")
+	if cfg.Files == nil || cfg.Files.Pattern != `^[a-z0-9_]+\.tf$` {
+		t.Fatalf("files pattern not loaded")
+	}
+	if cfg.Files.IsIgnored("foo.tf") {
+		t.Fatalf("files ignore default unexpected")
+	}
+	if cfg.Spacing == nil || !cfg.Spacing.EnabledValue() {
+		t.Fatalf("spacing should be enabled by default")
+	}
+	if cfg.Spacing.MinLines() != 1 {
+		t.Fatalf("default spacing min lines mismatch")
+	}
+	if cfg.Spacing.AllowCompactKind("variable") {
+		t.Fatalf("allow_compact should be empty by default")
 	}
 }
 
@@ -101,5 +124,31 @@ func TestRuleIgnoreRegex(t *testing.T) {
 	}
 	if !r.IsIgnored("tmp1") {
 		t.Fatalf("regex ignore failed")
+	}
+}
+
+func TestBlockSpacingConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := writeTempFile(t, dir, "tfsuit.hcl", `
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+resources { pattern = ".*" }
+
+block_spacing {
+  enabled = true
+  min_blank_lines = 2
+  allow_compact = ["variable", "output"]
+}
+`)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+	if cfg.Spacing == nil || cfg.Spacing.MinLines() != 2 {
+		t.Fatalf("spacing min lines mismatch")
+	}
+	if !cfg.Spacing.AllowCompactKind("variable") || !cfg.Spacing.AllowCompactKind("output") {
+		t.Fatalf("allow_compact not applied")
 	}
 }

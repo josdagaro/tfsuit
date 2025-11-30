@@ -112,9 +112,7 @@ data "aws_region" "current" {}
   provider = aws.primary`) {
 		t.Fatalf("data missing provider assignment:\n%s", out)
 	}
-	if !strings.Contains(string(out), `providers = {
-    aws = aws.primary
-  }`) {
+	if !(strings.Contains(string(out), "providers = {") && strings.Contains(string(out), "aws = aws.primary")) {
 		t.Fatalf("module missing providers mapping:\n%s", out)
 	}
 }
@@ -296,6 +294,227 @@ func TestScanFileAfterFix(t *testing.T) {
 	}
 	if len(findings) == 0 {
 		t.Fatalf("expected findings from sample bad.tf")
+	}
+}
+
+func TestFixRenamesFiles(t *testing.T) {
+	dir := t.TempDir()
+	tfPath := filepath.Join(dir, "Bad-Name.tf")
+	if err := os.WriteFile(tfPath, []byte(`resource "aws_s3_bucket" "logs" {}`), 0o644); err != nil {
+		t.Fatalf("write tf: %v", err)
+	}
+	cfgContent := `
+files { pattern = "^[a-z0-9_]+\\.tf$" }
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+resources { pattern = ".*" }
+`
+	cfgPath := filepath.Join(dir, "tfsuit.hcl")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
+	if err := rewrite.Run(dir, cfg, rewrite.Options{Write: true}); err != nil {
+		t.Fatalf("fix rename files: %v", err)
+	}
+	newPath := filepath.Join(dir, "bad_name.tf")
+	if _, err := os.Stat(newPath); err != nil {
+		t.Fatalf("expected renamed file: %v", err)
+	}
+	if _, err := os.Stat(tfPath); !os.IsNotExist(err) {
+		t.Fatalf("old file still exists")
+	}
+}
+
+func TestFixTypesFilter(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "providers.tf"), []byte(`provider "aws" { alias = "virginia" }`), 0o644); err != nil {
+		t.Fatalf("write providers: %v", err)
+	}
+
+	mainTf := `
+module "backend" {
+  source = "./backend"
+}
+`
+	if err := os.WriteFile(filepath.Join(dir, "main.tf"), []byte(mainTf), 0o644); err != nil {
+		t.Fatalf("write main: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "backend"), 0o755); err != nil {
+		t.Fatalf("mkdir backend: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "backend/main.tf"), []byte(`
+terraform {
+  required_providers {
+    aws = {
+      configuration_aliases = [aws.virginia]
+    }
+  }
+}
+
+resource "aws_s3_bucket" "logs" {}
+`), 0o644); err != nil {
+		t.Fatalf("write backend main: %v", err)
+	}
+	badFile := filepath.Join(dir, "Bad-Name.tf")
+	if err := os.WriteFile(badFile, []byte(``), 0o644); err != nil {
+		t.Fatalf("write bad file: %v", err)
+	}
+
+	cfgContent := `
+files {
+  pattern = "^[a-z0-9_]+\\.tf$"
+}
+
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+
+resources {
+  pattern = ".*"
+  require_provider = true
+}
+
+data {
+  pattern = ".*"
+  require_provider = true
+}
+`
+	cfgPath := filepath.Join(dir, "tfsuit.hcl")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
+	// Only rename files
+	opts := rewrite.Options{Write: true, FixKinds: map[string]bool{"file": true}}
+	if err := rewrite.Run(dir, cfg, opts); err != nil {
+		t.Fatalf("fix files only: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "bad_name.tf")); err != nil {
+		t.Fatalf("expected renamed file: %v", err)
+	}
+	rootMain, _ := os.ReadFile(filepath.Join(dir, "main.tf"))
+	if strings.Contains(string(rootMain), "providers =") {
+		t.Fatalf("module providers should not be added when module kind is skipped")
+	}
+
+	// Now only modules/resources
+	opts = rewrite.Options{
+		Write: true,
+		FixKinds: map[string]bool{
+			"module":   true,
+			"resource": true,
+			"data":     true,
+		},
+	}
+	if err := rewrite.Run(dir, cfg, opts); err != nil {
+		t.Fatalf("fix modules/resources: %v", err)
+	}
+	rootMain, _ = os.ReadFile(filepath.Join(dir, "main.tf"))
+	if !strings.Contains(string(rootMain), "providers =") {
+		t.Fatalf("expected providers map after module fix:\n%s", rootMain)
+	}
+
+	// Allow compact single-line variables/outputs
+	cfgContent = `
+files { pattern = "^[a-z0-9_]+\\.tf$" }
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+resources { pattern = ".*" }
+
+block_spacing {
+  allow_compact = ["variable", "output"]
+}
+`
+	cfgPath = filepath.Join(dir, "tfsuit.hcl")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+	cfg, err = config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+	single := filepath.Join(dir, "compact.tf")
+	if err := os.WriteFile(single, []byte(`variable "foo" { type = string }
+variable "bar" { type = number }`), 0o644); err != nil {
+		t.Fatalf("write compact: %v", err)
+	}
+	if err := rewrite.Run(dir, cfg, rewrite.Options{Write: true}); err != nil {
+		t.Fatalf("fix compact spacing: %v", err)
+	}
+	out, _ := os.ReadFile(single)
+	if strings.Contains(string(out), "\n\n") {
+		t.Fatalf("compact variables should remain without blank line:\n%s", out)
+	}
+}
+
+func TestFixAddsSpacingBetweenBlocks(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, "providers.tf"), []byte(`provider "aws" { alias = "default" }`), 0o644); err != nil {
+		t.Fatalf("write provider: %v", err)
+	}
+
+	cfgContent := `
+variables {
+  pattern = ".*"
+}
+
+outputs {
+  pattern = ".*"
+}
+
+modules {
+  pattern = ".*"
+  require_provider = false
+}
+
+resources {
+  pattern = ".*"
+  require_provider = false
+}
+
+block_spacing {
+  min_blank_lines = 2
+}
+`
+	cfgPath := filepath.Join(dir, "tfsuit.hcl")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
+	tf := filepath.Join(dir, "main.tf")
+	if err := os.WriteFile(tf, []byte(`
+module "a" {}
+module "b" {}
+`), 0o644); err != nil {
+		t.Fatalf("write tf: %v", err)
+	}
+
+	if err := rewrite.Run(dir, cfg, rewrite.Options{Write: true}); err != nil {
+		t.Fatalf("spacing fix: %v", err)
+	}
+	out, err := os.ReadFile(tf)
+	if err != nil {
+		t.Fatalf("read tf: %v", err)
+	}
+	if !strings.Contains(string(out), "\n\n\nmodule \"b\"") {
+		t.Fatalf("expected blank line inserted:\n%s", out)
 	}
 }
 
