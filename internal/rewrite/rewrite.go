@@ -46,6 +46,11 @@ type providerSelection struct {
 	Type  string
 }
 
+type fileRename struct {
+	Old string
+	New string
+}
+
 var (
 	errNoProviderDefinitions = errors.New("no provider configurations defined")
 	errNoProviderInScope     = errors.New("no provider available in scope")
@@ -75,6 +80,10 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	fileRen := map[string][]rename{}
 	globalRen := map[string]string{} // old → new
 	providerFixes := map[string][]providerInsertion{}
+	var pendingFileRenames []fileRename
+	if cfg.Files != nil {
+		pendingFileRenames = planFileRenames(files, cfg.Files)
+	}
 	// métricas para el resumen final
 	var (
 		declRenames         int // cantidad de etiquetas a renombrar (declaraciones)
@@ -82,8 +91,10 @@ func Run(root string, cfg *config.Config, opt Options) error {
 		filesChanged        int // archivos que cambian (dry-run o write)
 		xrefHits            int // cantidad de referencias cruzadas reemplazadas
 		providerAssignments int // cantidad de providers inyectados
+		fileRenameCount     int // cantidad de archivos renombrados
 	)
 	hasProviderFixes := false
+	hasFileRenames := len(pendingFileRenames) > 0
 
 	requireProvider := map[string]bool{
 		"module":   cfg.Modules.RequiresProvider(),
@@ -185,7 +196,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 		}
 	}
 
-	if len(globalRen) == 0 && !hasProviderFixes {
+	if len(globalRen) == 0 && !hasProviderFixes && !hasFileRenames {
 		// Alinea el comportamiento con la solicitud de un resumen al final
 		if opt.DryRun {
 			fmt.Println("✅ No fixes needed")
@@ -275,11 +286,30 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	}
 
 	// resumen final
+	if len(pendingFileRenames) > 0 {
+		for _, fr := range pendingFileRenames {
+			if opt.DryRun {
+				fmt.Printf("rename %s -> %s\n", fr.Old, fr.New)
+				fileRenameCount++
+			} else if opt.Write {
+				if err := os.Rename(fr.Old, fr.New); err != nil {
+					return err
+				}
+				fmt.Printf("renamed %s -> %s\n", fr.Old, fr.New)
+				fileRenameCount++
+				filesChanged++
+			}
+		}
+	}
+
 	if opt.DryRun {
 		fmt.Printf("\nSummary (dry-run): %d labels to rename across %d files; would update %d files; %d cross-references.",
 			declRenames, filesWithDecl, filesChanged, xrefHits)
 		if providerAssignments > 0 {
 			fmt.Printf(" Would add %d provider assignments.", providerAssignments)
+		}
+		if fileRenameCount > 0 {
+			fmt.Printf(" Would rename %d files.", fileRenameCount)
 		}
 		fmt.Printf("\n")
 	} else if opt.Write {
@@ -287,6 +317,9 @@ func Run(root string, cfg *config.Config, opt Options) error {
 			declRenames, filesWithDecl, filesChanged, xrefHits)
 		if providerAssignments > 0 {
 			fmt.Printf(" Added %d provider assignments.", providerAssignments)
+		}
+		if fileRenameCount > 0 {
+			fmt.Printf(" Renamed %d files.", fileRenameCount)
 		}
 		fmt.Printf("\n")
 	}
@@ -469,6 +502,50 @@ func ensureProvidersFile(root string) error {
 # }
 `
 	return os.WriteFile(path, []byte(content), 0o644)
+}
+
+func planFileRenames(files []string, rule *config.Rule) []fileRename {
+	if rule == nil {
+		return nil
+	}
+	existing := make(map[string]struct{}, len(files))
+	for _, path := range files {
+		existing[path] = struct{}{}
+	}
+
+	var renames []fileRename
+	for _, path := range files {
+		base := filepath.Base(path)
+		if rule.IsIgnored(base) || rule.Matches(base) {
+			continue
+		}
+		dir := filepath.Dir(path)
+		ext := strings.ToLower(filepath.Ext(base))
+		name := strings.TrimSuffix(base, filepath.Ext(base))
+		newName := toSnake(name)
+		if newName == "" {
+			newName = "file"
+		}
+		if ext == "" {
+			ext = ".tf"
+		}
+		candidate := filepath.Join(dir, newName+ext)
+		delete(existing, path)
+		suffix := 1
+		for {
+			if _, taken := existing[candidate]; !taken {
+				break
+			}
+			candidate = filepath.Join(dir, fmt.Sprintf("%s_%d%s", newName, suffix, ext))
+			suffix++
+		}
+		existing[candidate] = struct{}{}
+		if candidate == path {
+			continue
+		}
+		renames = append(renames, fileRename{Old: path, New: candidate})
+	}
+	return renames
 }
 
 type providerResolver struct {

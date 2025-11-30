@@ -299,6 +299,41 @@ func TestScanFileAfterFix(t *testing.T) {
 	}
 }
 
+func TestFixRenamesFiles(t *testing.T) {
+	dir := t.TempDir()
+	tfPath := filepath.Join(dir, "Bad-Name.tf")
+	if err := os.WriteFile(tfPath, []byte(`resource "aws_s3_bucket" "logs" {}`), 0o644); err != nil {
+		t.Fatalf("write tf: %v", err)
+	}
+	cfgContent := `
+files { pattern = "^[a-z0-9_]+\\.tf$" }
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+resources { pattern = ".*" }
+`
+	cfgPath := filepath.Join(dir, "tfsuit.hcl")
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+
+	if err := rewrite.Run(dir, cfg, rewrite.Options{Write: true}); err != nil {
+		t.Fatalf("fix rename files: %v", err)
+	}
+	newPath := filepath.Join(dir, "bad_name.tf")
+	if _, err := os.Stat(newPath); err != nil {
+		t.Fatalf("expected renamed file: %v", err)
+	}
+	if _, err := os.Stat(tfPath); !os.IsNotExist(err) {
+		t.Fatalf("old file still exists")
+	}
+}
+
 // utilidades -----------------------------------------------------------------
 
 func copyDir(src, dst string) error {
