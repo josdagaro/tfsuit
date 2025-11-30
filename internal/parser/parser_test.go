@@ -44,6 +44,46 @@ func BenchmarkParse100(b *testing.B) {
 	}
 }
 
+func TestSpacingFindings(t *testing.T) {
+	dir := t.TempDir()
+	tfPath := filepath.Join(dir, "main.tf")
+	content := `
+module "a" {}
+module "b" {}
+`
+	if err := os.WriteFile(tfPath, []byte(content), 0o644); err != nil {
+		t.Fatalf("write tf: %v", err)
+	}
+	cfgPath := filepath.Join(dir, "tfsuit.hcl")
+	cfgContent := `
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+resources { pattern = ".*" }
+`
+	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0o644); err != nil {
+		t.Fatalf("write cfg: %v", err)
+	}
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+	findings, err := parser.ParseFile(tfPath, cfg)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	found := false
+	for _, f := range findings {
+		if f.Kind == "spacing" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected spacing finding, got %v", findings)
+	}
+}
+
 func TestRequireProviderEnforcement(t *testing.T) {
 	dir := t.TempDir()
 

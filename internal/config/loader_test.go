@@ -69,6 +69,15 @@ files {
 	if cfg.Files.IsIgnored("foo.tf") {
 		t.Fatalf("files ignore default unexpected")
 	}
+	if cfg.Spacing == nil || !cfg.Spacing.EnabledValue() {
+		t.Fatalf("spacing should be enabled by default")
+	}
+	if cfg.Spacing.MinLines() != 1 {
+		t.Fatalf("default spacing min lines mismatch")
+	}
+	if cfg.Spacing.AllowCompactKind("variable") {
+		t.Fatalf("allow_compact should be empty by default")
+	}
 }
 
 func TestLoadJSON(t *testing.T) {
@@ -115,5 +124,31 @@ func TestRuleIgnoreRegex(t *testing.T) {
 	}
 	if !r.IsIgnored("tmp1") {
 		t.Fatalf("regex ignore failed")
+	}
+}
+
+func TestBlockSpacingConfig(t *testing.T) {
+	dir := t.TempDir()
+	path := writeTempFile(t, dir, "tfsuit.hcl", `
+variables { pattern = ".*" }
+outputs   { pattern = ".*" }
+modules   { pattern = ".*" }
+resources { pattern = ".*" }
+
+block_spacing {
+  enabled = true
+  min_blank_lines = 2
+  allow_compact = ["variable", "output"]
+}
+`)
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+	if cfg.Spacing == nil || cfg.Spacing.MinLines() != 2 {
+		t.Fatalf("spacing min lines mismatch")
+	}
+	if !cfg.Spacing.AllowCompactKind("variable") || !cfg.Spacing.AllowCompactKind("output") {
+		t.Fatalf("allow_compact not applied")
 	}
 }

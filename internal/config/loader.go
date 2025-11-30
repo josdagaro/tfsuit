@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	hcl "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
@@ -24,12 +25,22 @@ type Rule struct {
 }
 
 type Config struct {
-	Variables Rule  `hcl:"variables,block" json:"variables"`
-	Outputs   Rule  `hcl:"outputs,block" json:"outputs"`
-	Modules   Rule  `hcl:"modules,block" json:"modules"`
-	Resources Rule  `hcl:"resources,block" json:"resources"`
-	Data      *Rule `hcl:"data,block" json:"data,omitempty"`
-	Files     *Rule `hcl:"files,block" json:"files,omitempty"`
+	Variables Rule          `hcl:"variables,block" json:"variables"`
+	Outputs   Rule          `hcl:"outputs,block" json:"outputs"`
+	Modules   Rule          `hcl:"modules,block" json:"modules"`
+	Resources Rule          `hcl:"resources,block" json:"resources"`
+	Data      *Rule         `hcl:"data,block" json:"data,omitempty"`
+	Files     *Rule         `hcl:"files,block" json:"files,omitempty"`
+	Spacing   *BlockSpacing `hcl:"block_spacing,block" json:"block_spacing,omitempty"`
+}
+
+type BlockSpacing struct {
+	Enabled       *bool    `hcl:"enabled,optional" json:"enabled,omitempty"`
+	MinBlankLines int      `hcl:"min_blank_lines,optional" json:"min_blank_lines,omitempty"`
+	AllowCompact  []string `hcl:"allow_compact,optional" json:"allow_compact,omitempty"`
+
+	enabled  bool
+	allowSet map[string]struct{}
 }
 
 func (r *Rule) compile() error {
@@ -90,6 +101,9 @@ func (c *Config) compileRules() error {
 	} else if c.Files.Pattern == "" {
 		c.Files.Pattern = `.*\.tf$`
 	}
+	if c.Spacing == nil {
+		c.Spacing = &BlockSpacing{}
+	}
 
 	type ruleDef struct {
 		rule *Rule
@@ -111,7 +125,52 @@ func (c *Config) compileRules() error {
 		}
 		rd.rule.setRequireProvider(rd.def)
 	}
+	if err := c.Spacing.init(); err != nil {
+		return err
+	}
 	return nil
+}
+
+func (bs *BlockSpacing) init() error {
+	if bs.MinBlankLines <= 0 {
+		bs.MinBlankLines = 1
+	}
+	if bs.Enabled == nil {
+		bs.enabled = true
+	} else {
+		bs.enabled = *bs.Enabled
+	}
+	bs.allowSet = map[string]struct{}{}
+	for _, kind := range bs.AllowCompact {
+		kind = strings.ToLower(strings.TrimSpace(kind))
+		if kind == "" {
+			continue
+		}
+		bs.allowSet[kind] = struct{}{}
+	}
+	return nil
+}
+
+func (bs *BlockSpacing) EnabledValue() bool {
+	if bs == nil {
+		return false
+	}
+	return bs.enabled
+}
+
+func (bs *BlockSpacing) MinLines() int {
+	if bs == nil {
+		return 1
+	}
+	return bs.MinBlankLines
+}
+
+func (bs *BlockSpacing) AllowCompactKind(kind string) bool {
+	if bs == nil {
+		return false
+	}
+	_, ok := bs.allowSet[kind]
+	return ok
 }
 
 // Load reads and parses a HCL or JSON config file.

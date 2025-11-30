@@ -62,6 +62,13 @@ type fileRename struct {
 	New string
 }
 
+type blockInfo struct {
+	Kind       string
+	StartLine  int
+	EndLine    int
+	SingleLine bool
+}
+
 var (
 	errNoProviderDefinitions = errors.New("no provider configurations defined")
 	errNoProviderInScope     = errors.New("no provider available in scope")
@@ -91,11 +98,10 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	fileRen := map[string][]rename{}
 	globalRen := map[string]string{} // old → new
 	providerFixes := map[string][]providerInsertion{}
+	blockInfosByPath := map[string][]blockInfo{}
 	var pendingFileRenames []fileRename
-	if cfg.Files != nil {
 	if cfg.Files != nil && opt.allows("file") {
 		pendingFileRenames = planFileRenames(files, cfg.Files)
-	}
 	}
 	// métricas para el resumen final
 	var (
@@ -108,6 +114,7 @@ func Run(root string, cfg *config.Config, opt Options) error {
 	)
 	hasProviderFixes := false
 	hasFileRenames := len(pendingFileRenames) > 0
+	spacingEnabled := cfg.Spacing != nil && cfg.Spacing.EnabledValue()
 
 	requireProvider := map[string]bool{
 		"module":   cfg.Modules.RequiresProvider(),
@@ -127,11 +134,20 @@ func Run(root string, cfg *config.Config, opt Options) error {
 		}
 
 		body := file.Body.(*hclsyntax.Body)
+		var blockInfos []blockInfo
 		for _, b := range body.Blocks {
 
 			switch b.Type {
 
 			case "variable", "output":
+				info := blockInfo{
+					Kind:       b.Type,
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
 				if !opt.allows(b.Type) {
 					continue
 				}
@@ -151,6 +167,14 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				globalRen[old] = newName
 
 			case "module":
+				info := blockInfo{
+					Kind:       "module",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
 				if !opt.allows("module") {
 					continue
 				}
@@ -170,8 +194,22 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					}
 					hasProviderFixes = true
 				}
+				blockInfos = append(blockInfos, blockInfo{
+					Kind:       "module",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				})
 
 			case "resource":
+				info := blockInfo{
+					Kind:       "resource",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
 				if !opt.allows("resource") {
 					continue
 				}
@@ -192,8 +230,22 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					}
 					hasProviderFixes = true
 				}
+				blockInfos = append(blockInfos, blockInfo{
+					Kind:       "resource",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				})
 
 			case "data":
+				info := blockInfo{
+					Kind:       "data",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				}
+				blockInfos = append(blockInfos, info)
+
 				if !opt.allows("data") {
 					continue
 				}
@@ -217,11 +269,18 @@ func Run(root string, cfg *config.Config, opt Options) error {
 					}
 					hasProviderFixes = true
 				}
+				blockInfos = append(blockInfos, blockInfo{
+					Kind:       "data",
+					StartLine:  b.Range().Start.Line,
+					EndLine:    b.Range().End.Line,
+					SingleLine: b.Range().Start.Line == b.Range().End.Line,
+				})
 			}
 		}
+		blockInfosByPath[path] = blockInfos
 	}
 
-	if len(globalRen) == 0 && !hasProviderFixes && !hasFileRenames {
+	if len(globalRen) == 0 && !hasProviderFixes && !hasFileRenames && !spacingEnabled {
 		// Alinea el comportamiento con la solicitud de un resumen al final
 		if opt.DryRun {
 			fmt.Println("✅ No fixes needed")
@@ -290,6 +349,12 @@ func Run(root string, cfg *config.Config, opt Options) error {
 				}
 				return b
 			})
+		}
+
+		if cfg.Spacing != nil && cfg.Spacing.EnabledValue() {
+			if updated, changed := enforceBlockSpacing(mod, blockInfosByPath[path], cfg.Spacing, opt); changed {
+				mod = updated
+			}
 		}
 
 		if bytes.Equal(orig, mod) {
@@ -571,6 +636,96 @@ func planFileRenames(files []string, rule *config.Rule) []fileRename {
 		renames = append(renames, fileRename{Old: path, New: candidate})
 	}
 	return renames
+}
+
+func enforceBlockSpacing(content []byte, infos []blockInfo, spacing *config.BlockSpacing, opt Options) ([]byte, bool) {
+	if spacing == nil || !spacing.EnabledValue() || len(infos) < 2 || !opt.allows("spacing") {
+		return content, false
+	}
+	lines := splitLines(content)
+	var ops []struct {
+		insertLine int
+		count      int
+	}
+
+	for i := 0; i < len(infos)-1; i++ {
+		current := infos[i]
+		next := infos[i+1]
+		if spacing.AllowCompactKind(current.Kind) && spacing.AllowCompactKind(next.Kind) &&
+			current.SingleLine && next.SingleLine {
+			continue
+		}
+		actual := countBlankLinesBetween(lines, current.EndLine, next.StartLine)
+		if actual >= spacing.MinLines() {
+			continue
+		}
+		ops = append(ops, struct {
+			insertLine int
+			count      int
+		}{
+			insertLine: next.StartLine,
+			count:      spacing.MinLines() - actual,
+		})
+	}
+
+	if len(ops) == 0 {
+		return content, false
+	}
+
+	sort.Slice(ops, func(i, j int) bool {
+		return ops[i].insertLine > ops[j].insertLine
+	})
+
+	for _, op := range ops {
+		idx := op.insertLine - 1
+		if idx < 0 {
+			idx = 0
+		}
+		blanks := make([]string, op.count)
+		if idx >= len(lines) {
+			lines = append(lines, blanks...)
+			continue
+		}
+		lines = append(lines[:idx], append(blanks, lines[idx:]...)...)
+	}
+
+	result := strings.Join(lines, "\n")
+	if strings.HasSuffix(string(content), "\n") {
+		result += "\n"
+	}
+	return []byte(result), true
+}
+
+func splitLines(src []byte) []string {
+	var lines []string
+	start := 0
+	for i, b := range src {
+		if b == '\n' {
+			lines = append(lines, string(src[start:i]))
+			start = i + 1
+		}
+	}
+	if start <= len(src) {
+		lines = append(lines, string(src[start:]))
+	}
+	return lines
+}
+
+func countBlankLinesBetween(lines []string, endLine, nextStart int) int {
+	if nextStart <= endLine+1 {
+		return 0
+	}
+	blank := 0
+	for lineNum := endLine + 1; lineNum <= nextStart-1; lineNum++ {
+		idx := lineNum - 1
+		if idx < 0 || idx >= len(lines) {
+			continue
+		}
+		if strings.TrimSpace(lines[idx]) == "" {
+			blank++
+		}
+	}
+	return blank
 }
 
 type providerResolver struct {

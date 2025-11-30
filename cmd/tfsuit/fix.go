@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	write     bool
-	dryRun    bool
-	fixTypes  string
+	write    bool
+	dryRun   bool
+	fixTypes string
 )
 
 func newFixCmd() *cobra.Command {
@@ -67,6 +67,7 @@ func parseFixTypesFlag(flag string) (map[string]bool, error) {
 		"module":   {},
 		"data":     {},
 		"resource": {},
+		"spacing":  {},
 	}
 	kinds := map[string]bool{}
 	for _, part := range strings.Split(flag, ",") {
@@ -75,7 +76,7 @@ func parseFixTypesFlag(flag string) (map[string]bool, error) {
 			continue
 		}
 		if _, ok := valid[part]; !ok {
-			return nil, fmt.Errorf("unknown fix type %q (valid: file,variable,output,module,data,resource)", part)
+			return nil, fmt.Errorf("unknown fix type %q (valid: file,variable,output,module,data,resource,spacing)", part)
 		}
 		kinds[part] = true
 	}
