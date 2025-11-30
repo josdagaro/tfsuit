@@ -284,6 +284,21 @@ resource "aws_iam_role" "app" {}
 	}
 }
 
+func TestScanFileAfterFix(t *testing.T) {
+	cfg, err := config.Load(filepath.Join("..", "..", "samples", "simple", "tfsuit.hcl"))
+	if err != nil {
+		t.Fatalf("load cfg: %v", err)
+	}
+	path := filepath.Join("..", "..", "samples", "simple", "bad.tf")
+	findings, err := rewrite.ScanFileAfterFix(path, cfg)
+	if err != nil {
+		t.Fatalf("ScanFileAfterFix: %v", err)
+	}
+	if len(findings) == 0 {
+		t.Fatalf("expected findings from sample bad.tf")
+	}
+}
+
 // utilidades -----------------------------------------------------------------
 
 func copyDir(src, dst string) error {
